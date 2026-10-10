@@ -1,41 +1,34 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-
-const users = [];
-let nextId = 1;
+const User = require("../models/User");
 
 const BCRYPT_SALT_ROUNDS = 12;
 const DEFAULT_ROLE = "client";
 
 async function register(req, res) {
-    const { username, password } = req.body;
-
-    const existingUser = users.find(
-        (user) =>
-            user.username.toLowerCase() === username.toLowerCase()
-    );
-
-    if (existingUser) {
-        return res.status(409).json({
-            message: "That username is already taken.",
-        });
-    }
+    const { username, password, role } = req.body;
 
     try {
+        const existingUser = await User.findOne({
+            username: username.toLowerCase(),
+        });
+
+        if (existingUser) {
+        return res.status(409).json({
+            message: "That username is already taken.",
+            });
+        }
+
         const passwordHash = await bcrypt.hash(
             password,
             BCRYPT_SALT_ROUNDS
         );
 
-        const newUser = {
-            id: nextId,
+        const newUser = await User.create({
             username,
             passwordHash,
-            role: DEFAULT_ROLE,
-        };
-
-        users.push(newUser);
-        nextId += 1;
+            role: role || DEFAULT_ROLE,
+        });
 
         return res.status(201).json({
             message: "User registered successfully.",
@@ -45,8 +38,14 @@ async function register(req, res) {
                 role: newUser.role,
             },
         });
-    } catch {
-        console.error("Registration failed unexpectedly.");
+    } catch (error) {
+        if (error.code === 11000) {
+            return res.status(409).json({
+                message: "That username is already taken.",
+            });
+        }
+
+        console.error("Registration failed unexpectedly.", error.message);
 
         return res.status(500).json({
             message: "An unexpected error occurred.",
@@ -58,11 +57,9 @@ async function login(req, res) {
     const { username, password } = req.body;
 
     try {
-        const user = users.find(
-            (storedUser) =>
-                storedUser.username.toLowerCase() ===
-                username.toLowerCase()
-        );
+        const user = await User.findOne({
+            username: username.toLowerCase()
+        });
 
         if (!user) {
             return res.status(401).json({
@@ -81,6 +78,8 @@ async function login(req, res) {
             });
         }
 
+        const userId = user._id.toString();
+
         const token = jwt.sign(
             {
                 id: user.id,
@@ -92,7 +91,7 @@ async function login(req, res) {
                 expiresIn: process.env.JWT_EXPIRES_IN,
                 issuer: process.env.JWT_ISSUER,
                 audience: process.env.JWT_AUDIENCE,
-                subject: String(user.id),
+                subject: userId,
             }
         );
 
@@ -102,7 +101,7 @@ async function login(req, res) {
             tokenType: "Bearer",
             expiresIn: process.env.JWT_EXPIRES_IN,
             user: {
-                id: user.id,
+                id: user._id,
                 username: user.username,
                 role: user.role,
             },
@@ -114,6 +113,6 @@ async function login(req, res) {
             message: "An unexpected error occurred.",
         });
     }
-}
-
-module.exports = { register, login };
+}  
+  
+module.exports = { register, login }; 

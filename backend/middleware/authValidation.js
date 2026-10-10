@@ -1,28 +1,29 @@
 const { body, validationResult } = require("express-validator");
 
-function allowOnlyUsernameAndPassword(req, res, next) {
-    if (
-        !req.body ||
-        typeof req.body !== "object" ||
-        Array.isArray(req.body)
-    ) {
-        return res.status(400).json({
-            message: "Request body must be a JSON object.",
-        });
-    }
+function allowOnlyFields (allowedFields) {
+    return (req, res, next) => {
+        if (
+            !req.body ||
+            typeof req.body !== "object" ||
+            Array.isArray(req.body)
+        ) {
+            return res.status(400).json({
+                message: "Request body must be a JSON object.",
+            });
+        }   
 
-    const allowedFields = ["username", "password"];
-    const unexpectedFields = Object.keys(req.body).filter(
-        (field) => !allowedFields.includes(field)
-    );
+        const unexpectedFields = Object.keys(req.body).filter(
+            (field) => !allowedFields.includes(field)
+        );
 
-    if (unexpectedFields.length > 0) {
-        return res.status(400).json({
-            message: "Request contains unsupported fields.",
-        });
-    }
-
-    return next();
+        if (unexpectedFields.length > 0) {
+            return res.status(400).json({
+                message: "Request contains unsupported fields.",
+            });
+        }
+    
+        return next();
+    };
 }
 
 function usernameRule() {
@@ -67,6 +68,16 @@ function registrationPasswordRule() {
         .withMessage("Password must contain a special character.");
 }
 
+function roleRule() {
+    return body("role")
+        .optional()
+        .isString()
+        .withMessage("Role must be text.")
+        .bail()
+        .isIn(["client", "freelancer"])
+        .withMessage("Role must be either client or freelancer.");
+}
+
 function loginPasswordRule() {
     return body("password")
         .exists({ values: "falsy" })
@@ -101,19 +112,21 @@ function handleValidationErrors(req, res, next) {
 }
 
 const registerValidation = [
-    allowOnlyUsernameAndPassword,
+    allowOnlyFields(["username", "password", "role"]),
     usernameRule(),
     registrationPasswordRule(),
+    roleRule(),
     handleValidationErrors,
 ];
 
 const loginValidation = [
-    allowOnlyUsernameAndPassword,
+    allowOnlyFields(["username", "password"]),
     usernameRule(),
     loginPasswordRule(),
     handleValidationErrors,
 ];
 
+    
 module.exports = {
     registerValidation,
     loginValidation,
