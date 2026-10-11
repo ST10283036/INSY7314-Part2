@@ -13,6 +13,7 @@ const authenticateToken = require(
     "./middleware/authenticateToken"
 );
 const connectDatabase = require("./config/db");
+const gigRoutes = require("./routes/gigRoutes");
 
 const requiredSettings = [
     "JWT_SECRET",
@@ -65,6 +66,7 @@ app.get("/api/health", (req, res) => {
 });
 
 app.use("/api/auth", authRoutes);
+app.use("/api/gigs", gigRoutes);
 
 app.get(
     "/api/protected",
