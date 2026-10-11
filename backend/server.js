@@ -12,6 +12,8 @@ const authRoutes = require("./routes/authRoutes");
 const authenticateToken = require(
     "./middleware/authenticateToken"
 );
+const connectDatabase = require("./config/db");
+const gigRoutes = require("./routes/gigRoutes");
 
 const requiredSettings = [
     "JWT_SECRET",
@@ -20,6 +22,7 @@ const requiredSettings = [
     "JWT_AUDIENCE",
     "TLS_KEY_PATH",
     "TLS_CERT_PATH",
+    "MONGO_URI"
 ];
 
 const missingSettings = requiredSettings.filter(
@@ -63,6 +66,7 @@ app.get("/api/health", (req, res) => {
 });
 
 app.use("/api/auth", authRoutes);
+app.use("/api/gigs", gigRoutes);
 
 app.get(
     "/api/protected",
@@ -105,19 +109,23 @@ app.use((error, req, res, next) => {
     });
 });
 
-try {
-    const httpsOptions = {
-        key: fs.readFileSync(
-            path.resolve(
-                __dirname,
-                process.env.TLS_KEY_PATH
-            )
+async function startServer() {
+    try {
+        await connectDatabase();
+    } catch {
+        console.error(
+            "Could not connect to the databse. Check that MongoDB is running and MONGO_URI is correct."
+        );
+        process.exit(1);
+    }
+
+    try {
+        const httpsOptions = {
+            key: fs.readFileSync(
+                path.resolve(__dirname, process.env.TLS_KEY_PATH)
         ),
         cert: fs.readFileSync(
-            path.resolve(
-                __dirname,
-                process.env.TLS_CERT_PATH
-            )
+            path.resolve(__dirname, process.env.TLS_CERT_PATH)
         ),
     };
 
@@ -127,11 +135,13 @@ try {
             console.log(
                 `HustleHub+ backend running securely at https://localhost:${port}`
             );
-        }
-    );
-} catch {
-    console.error(
-        "HTTPS certificate files could not be loaded. Check the configured paths."
-    );
-    process.exit(1);
+        });
+    } catch {
+        console.error(
+            "HTTPS certificate files could not be loaded. Check the configured paths."
+        );
+        process.exit(1);
+    }
 }
+
+startServer();

@@ -26,7 +26,8 @@ function authenticateToken(req, res, next) {
 
         if (
             typeof decoded !== "object" ||
-            !Number.isInteger(decoded.id) ||
+            typeof decoded.id !== "string" ||
+            !/^[a-f0-9]{24}$/i.test(decoded.id) ||
             typeof decoded.role !== "string"
         ) {
             return res.status(401).json({
@@ -41,6 +42,8 @@ function authenticateToken(req, res, next) {
 
         return next();
     } catch {
+        console.error("Token rejected:", error.message);
+        
         return res.status(401).json({
             message: "Authentication required.",
         });
