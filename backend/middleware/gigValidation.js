@@ -1,4 +1,4 @@
-const { body, validationResult } = require("express-validator");
+const { body, param, validationResult } = require("express-validator");
 
 function allowOnlyFields(allowedFields) {
     return (req, res, next) => {
@@ -78,4 +78,9 @@ const createGigValidation = [
     handleValidationErrors,
 ];
 
-module.exports = { createGigValidation };
+const gigIdValidation = [
+    param("id").isMongoId().withMessage("Invalid gig id."),
+    handleValidationErrors,
+];
+
+module.exports = { createGigValidation, gigIdValidation };
