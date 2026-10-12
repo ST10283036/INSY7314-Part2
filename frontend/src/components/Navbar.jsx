@@ -16,10 +16,11 @@ export default function Navbar() {
       <div className="navbar-links">
         {isAuthenticated ? (
           <>
-            <Link to="/gigs">Browse Gigs</Link>
+            {user?.role !== "admin" && <Link to="/gigs">Browse Gigs</Link>}
             {user?.role === "freelancer" && <Link to="/my-gigs">My Gigs</Link>}
-            <Link to="/bookings">My Bookings</Link>
+            {user?.role !== "admin" && <Link to="/bookings">My Bookings</Link>}
             {user?.role === "freelancer" && <Link to="/income">Income</Link>}
+            {user?.role === "admin" && <Link to="/admin">Admin Summary</Link>}
             <span className="navbar-user">{user?.username} ({user?.role})</span>
             <button onClick={handleLogout}>Log out</button>
           </>

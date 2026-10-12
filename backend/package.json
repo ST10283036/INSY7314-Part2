@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "setup:local": "node scripts/setup-local.js",
+    "admin:create": "node scripts/create-local-admin.js",
     "start:local": "node scripts/start-local.js",
     "test:newman": "node scripts/run-newman.js",
     "test:zap": "node scripts/run-zap.js",
