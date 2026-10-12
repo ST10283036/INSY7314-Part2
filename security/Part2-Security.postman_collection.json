@@ -1,0 +1,1170 @@
+{
+  "info": {
+    "name": "HustleHub Part 2 - Security",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Role, ownership, JWT, validation, headers and rate-limiting regression tests. Use a dedicated local test database."
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://localhost:5000"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 Health and security headers",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/health"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"01 Health and security headers\", function () { pm.response.to.have.status(200); });",
+              "pm.test('Restrictive CSP', function () { pm.expect(pm.response.headers.get('Content-Security-Policy')).to.include(\"script-src 'self'\"); });",
+              "pm.test('MIME sniffing blocked', function () { pm.expect(pm.response.headers.get('X-Content-Type-Options')).to.equal('nosniff'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Register clientA",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/auth/register",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{clientA}}\",\n  \"password\": \"{{demoPassword}}\",\n  \"role\": \"client\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var suffix = pm.variables.replaceIn('{{$randomUUID}}').replace(/-/g, '').slice(0, 8);",
+              "pm.collectionVariables.set('demoPassword', pm.variables.replaceIn('{{$randomUUID}}') + 'aA1!');",
+              "['clientA','clientB','freelancerA','freelancerB'].forEach(function (name) { pm.collectionVariables.set(name, name.toLowerCase() + '_' + suffix); });",
+              "pm.collectionVariables.set('rateAttempts', '0');"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Register clientA\", function () { pm.response.to.have.status(201); });",
+              "pm.test('No password leakage', function () { pm.expect(pm.response.json().user).not.to.have.property('passwordHash'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Login clientA",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{clientA}}\",\n  \"password\": \"{{demoPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Login clientA\", function () { pm.response.to.have.status(200); });",
+              "pm.collectionVariables.set('clientAToken', pm.response.json().token);",
+              "pm.test('JWT generated', function () { pm.expect(pm.response.json().token).to.be.a('string'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Register clientB",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/auth/register",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{clientB}}\",\n  \"password\": \"{{demoPassword}}\",\n  \"role\": \"client\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Register clientB\", function () { pm.response.to.have.status(201); });",
+              "pm.test('No password leakage', function () { pm.expect(pm.response.json().user).not.to.have.property('passwordHash'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Login clientB",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{clientB}}\",\n  \"password\": \"{{demoPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Login clientB\", function () { pm.response.to.have.status(200); });",
+              "pm.collectionVariables.set('clientBToken', pm.response.json().token);",
+              "pm.test('JWT generated', function () { pm.expect(pm.response.json().token).to.be.a('string'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Register freelancerA",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/auth/register",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{freelancerA}}\",\n  \"password\": \"{{demoPassword}}\",\n  \"role\": \"freelancer\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Register freelancerA\", function () { pm.response.to.have.status(201); });",
+              "pm.test('No password leakage', function () { pm.expect(pm.response.json().user).not.to.have.property('passwordHash'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Login freelancerA",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{freelancerA}}\",\n  \"password\": \"{{demoPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Login freelancerA\", function () { pm.response.to.have.status(200); });",
+              "pm.collectionVariables.set('freelancerAToken', pm.response.json().token);",
+              "pm.test('JWT generated', function () { pm.expect(pm.response.json().token).to.be.a('string'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Register freelancerB",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/auth/register",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{freelancerB}}\",\n  \"password\": \"{{demoPassword}}\",\n  \"role\": \"freelancer\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Register freelancerB\", function () { pm.response.to.have.status(201); });",
+              "pm.test('No password leakage', function () { pm.expect(pm.response.json().user).not.to.have.property('passwordHash'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Login freelancerB",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{freelancerB}}\",\n  \"password\": \"{{demoPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Login freelancerB\", function () { pm.response.to.have.status(200); });",
+              "pm.collectionVariables.set('freelancerBToken', pm.response.json().token);",
+              "pm.test('JWT generated', function () { pm.expect(pm.response.json().token).to.be.a('string'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Public admin registration denied",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/auth/register",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"blocked_admin\",\n  \"password\": \"{{demoPassword}}\",\n  \"role\": \"admin\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Public admin registration denied\", function () { pm.response.to.have.status(400); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Client cannot create gig",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{clientAToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/gigs",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Forbidden\",\n  \"description\": \"A forbidden listing attempt.\",\n  \"price\": 125.5\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Client cannot create gig\", function () { pm.response.to.have.status(403); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Freelancer creates sanitised gig",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{freelancerAToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/gigs",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"<script>alert(1)</script><b>Logo design</b>\",\n  \"description\": \"Ordinary description of a safe service.\",\n  \"price\": 125.5\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Freelancer creates sanitised gig\", function () { pm.response.to.have.status(201); });",
+              "pm.collectionVariables.set('gigId', pm.response.json().gig.id);",
+              "pm.test('HTML removed', function () { pm.expect(pm.response.json().gig.title).to.equal('Logo design'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Other freelancer cannot edit gig",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{freelancerBToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/gigs/{{gigId}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Unauthorised change\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Other freelancer cannot edit gig\", function () { pm.response.to.have.status(404); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Other freelancer cannot delete gig",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{freelancerBToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/gigs/{{gigId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Other freelancer cannot delete gig\", function () { pm.response.to.have.status(404); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Denied mutations leave gig unchanged",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{freelancerAToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/gigs/{{gigId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Denied mutations leave gig unchanged\", function () { pm.response.to.have.status(200); });",
+              "pm.test('Original title remains', function () { pm.expect(pm.response.json().gig.title).to.equal('Logo design'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Invalid gig ID denied",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{clientAToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/gigs/not-an-id"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Invalid gig ID denied\", function () { pm.response.to.have.status(400); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Availability must be a boolean",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{freelancerAToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/gigs/{{gigId}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"isAvailable\": \"false\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Availability must be a boolean\", function () { pm.response.to.have.status(400); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Owner can hide gig",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{freelancerAToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/gigs/{{gigId}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"isAvailable\": false\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Owner can hide gig\", function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Unavailable gig is private",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{clientAToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/gigs/{{gigId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Unavailable gig is private\", function () { pm.response.to.have.status(404); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Owner can restore gig",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{freelancerAToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/gigs/{{gigId}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"isAvailable\": true\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Owner can restore gig\", function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Booking rejects client-supplied amount",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{clientAToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/bookings",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"gigId\": \"{{gigId}}\",\n  \"amount\": 1\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Booking rejects client-supplied amount\", function () { pm.response.to.have.status(400); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Client books gig and transaction is recorded",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{clientAToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/bookings",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"gigId\": \"{{gigId}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Client books gig and transaction is recorded\", function () { pm.response.to.have.status(201); });",
+              "pm.collectionVariables.set('bookingId', pm.response.json().booking.id);",
+              "pm.test('Server price used', function () { pm.expect(pm.response.json().transaction.amount).to.equal(125.5); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Freelancer cannot use client booking capability",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{freelancerAToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/bookings",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"gigId\": \"{{gigId}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Freelancer cannot use client booking capability\", function () { pm.response.to.have.status(403); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Other client cannot view booking",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{clientBToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/bookings/{{bookingId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Other client cannot view booking\", function () { pm.response.to.have.status(404); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Other freelancer cannot view booking",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{freelancerBToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/bookings/{{bookingId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Other freelancer cannot view booking\", function () { pm.response.to.have.status(404); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Associated freelancer can view transaction",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{freelancerAToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/bookings/{{bookingId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Associated freelancer can view transaction\", function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Client booking list is isolated",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{clientBToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/bookings/mine"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Client booking list is isolated\", function () { pm.response.to.have.status(200); });",
+              "pm.test('No other clients records', function () { pm.expect(pm.response.json().bookings).to.have.lengthOf(0); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Income belongs to correct freelancer",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{freelancerAToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/income"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Income belongs to correct freelancer\", function () { pm.response.to.have.status(200); });",
+              "pm.test('Income is correct', function () { pm.expect(pm.response.json().totalIncome).to.equal(125.5); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Other freelancer income remains zero",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{freelancerBToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/income"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Other freelancer income remains zero\", function () { pm.response.to.have.status(200); });",
+              "pm.test('Income is isolated', function () { pm.expect(pm.response.json().totalIncome).to.equal(0); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Client cannot access income",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{clientAToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/income"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Client cannot access income\", function () { pm.response.to.have.status(403); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Missing token denied",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/gigs"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Missing token denied\", function () { pm.response.to.have.status(401); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Altered token denied",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{clientAToken}}x"
+          }
+        ],
+        "url": "{{baseUrl}}/api/protected"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Altered token denied\", function () { pm.response.to.have.status(401); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Query-shaped login denied",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": {\n    \"$ne\": null\n  },\n  \"password\": \"{{demoPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Query-shaped login denied\", function () { pm.response.to.have.status(400); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Incorrect login is generic",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{clientA}}\",\n  \"password\": \"IncorrectDemo1!\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Incorrect login is generic\", function () { pm.response.to.have.status(401); });",
+              "pm.test('Generic error', function () { pm.expect(pm.response.json().message).to.equal('Invalid username or password.'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Login throttling",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"absent_rate_user\",\n  \"password\": \"IncorrectDemo1!\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var attempts = Number(pm.collectionVariables.get('rateAttempts') || '0') + 1;",
+              "pm.collectionVariables.set('rateAttempts', String(attempts));",
+              "pm.test('Controlled login response', function () { pm.expect([401,429]).to.include(pm.response.code); });",
+              "if (pm.response.code === 429) {",
+              "  pm.test('Retry information supplied', function () { pm.expect(Number(pm.response.headers.get('Retry-After'))).to.be.above(0); });",
+              "  pm.execution.setNextRequest(null);",
+              "} else if (attempts < 12) { pm.execution.setNextRequest('Login throttling'); }",
+              "else { pm.test('Rate limit reached', function () { pm.expect(pm.response.code).to.equal(429); }); }"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

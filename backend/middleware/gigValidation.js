@@ -1,128 +1,66 @@
-const { body, param, validationResult } = require("express-validator");
+const { body, param } = require("express-validator");
+const {
+    allowOnlyFields,
+    handleValidationErrors,
+    plainText,
+} = require("./requestValidation");
 
-function allowOnlyFields(allowedFields) {
-    return (req, res, next) => {
-        if (
-            !req.body ||
-            typeof req.body !== "object" ||
-            Array.isArray(req.body)
-        ) {
-            return res.status(400).json({
-                message: "Request body must be a JSON object.",
-            });
-        }
-
-        const unexpectedFields = Object.keys(req.body).filter(
-            (field) => !allowedFields.includes(field)
-        );
-
-        if (unexpectedFields.length > 0) {
-            return res.status(400).json({
-                message: "Request contains unsupported fields.",
-            });
-        }
-
-        return next();
-    };
+function textRule(field, minimum, maximum, optional = false) {
+    const rule = body(field);
+    if (optional) rule.optional();
+    return rule
+        .isString().withMessage(`${field} must be text.`).bail()
+        .isLength({ max: 4000 }).withMessage(`${field} is too long.`).bail()
+        .customSanitizer(plainText)
+        .isLength({ min: minimum, max: maximum })
+        .withMessage(`${field} must contain ${minimum} to ${maximum} characters.`);
 }
 
-function handleValidationErrors(req, res, next) {
-    const errors = validationResult(req);
-
-    if (errors.isEmpty()) {
-        return next();
-    }
-
-    return res.status(400).json({
-        message: "Validation failed.",
-        errors: errors
-            .array({ onlyFirstError: true })
-            .map((error) => ({
-                field: error.path,
-                message: error.msg,
-            })),
-    });
+function priceRule(optional = false) {
+    const rule = body("price");
+    if (optional) rule.optional();
+    return rule.custom((value) =>
+        typeof value === "number" &&
+        Number.isFinite(value) &&
+        value >= 1 && value <= 1000000 &&
+        Math.abs(value * 100 - Math.round(value * 100)) < 0.0000001
+    ).withMessage("Price must be a number from 1 to 1000000 with at most two decimal places.");
 }
+
+const idRule = () => param("id").isMongoId().withMessage("Invalid gig id.");
 
 const createGigValidation = [
     allowOnlyFields(["title", "description", "price"]),
-    body("title")
-        .exists({ values: "falsy" })
-        .withMessage("Title is required.")
-        .bail()
-        .isString()
-        .withMessage("Title must be next.")
-        .bail()
-        .trim()
-        .isLength({ min: 3, max: 100 })
-        .withMessage("Title must be between 3 and 100 characters.")
-        .escape(),
-    body("description")
-        .exists({ values: "falsy" })
-        .withMessage("Description is required.")
-        .bail()
-        .isString()
-        .withMessage("Description must be text.")
-        .bail()
-        .trim()
-        .isLength({ min: 10, max: 1000 })
-        .withMessage("Description must be between 10 and 1000 characters.")
-        .escape(),
-    body("price")
-        .exists({ values: "falsy" })
-        .withMessage("Price is required.")
-        .bail()
-        .isFloat({ min: 1, max: 1000000 })
-        .withMessage("Price must be a number between 1 and 1000000.")
-        .toFloat(),
+    textRule("title", 3, 100),
+    textRule("description", 10, 1000),
+    priceRule(),
     handleValidationErrors,
 ];
 
-const gigIdValidation = [
-    param("id").isMongoId().withMessage("Invalid gig id."),
-    handleValidationErrors,
-];
+const gigIdValidation = [idRule(), handleValidationErrors];
 
 const updateGigValidation = [
-    param("id").isMongoId().withMessage("Invalid gig id."),
+    idRule(),
     allowOnlyFields(["title", "description", "price", "isAvailable"]),
     (req, res, next) => {
-        if (Object.keys(req.body).length === 0) {
-            return res.status(400).json({
-                message: "Provide at least one field to update.",
-            });
+        if (!Object.keys(req.body).length) {
+            return res.status(400).json({ message: "Provide at least one field to update." });
         }
-
         return next();
     },
-    body("title")
-        .optional()
-        .isString()
-        .withMessage("Title must be next.")
-        .bail()
-        .trim()
-        .isLength({ min: 3, max: 100 })
-        .withMessage("Title must be between 3 and 100 characters.")
-        .escape(),
-    body("description")
-        .optional()
-        .isString()
-        .withMessage("Description must be text.")
-        .bail()
-        .trim()
-        .isLength({ min: 10, max: 1000 })
-        .withMessage("Description must be between 10 and 1000 characters.")
-        .escape(),
-    body("price")
-        .optional()
-        .isFloat({ min: 1, max: 1000000 })
-        .withMessage("Price must be a number between 1 and 1000000.")
-        .toFloat(),
-    body("isAvaiilable")
-        .optional()
-        .isBoolean({ strict: true })
+    textRule("title", 3, 100, true),
+    textRule("description", 10, 1000, true),
+    priceRule(true),
+    body("isAvailable").optional()
+        .custom((value) => typeof value === "boolean")
         .withMessage("isAvailable must be true or false."),
     handleValidationErrors,
 ];
 
-module.exports = { createGigValidation, gigIdValidation, updateGigValidation };
+module.exports = {
+    createGigValidation,
+    gigIdValidation,
+    updateGigValidation,
+    allowOnlyFields,
+    handleValidationErrors,
+};

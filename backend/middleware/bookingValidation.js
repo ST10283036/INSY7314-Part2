@@ -2,7 +2,7 @@ const { body } = require("express-validator");
 const {
     allowOnlyFields,
     handleValidationErrors,
-} = require("./gigValidation");
+} = require("./requestValidation");
 
 const createBookingValidation = [
     allowOnlyFields(["gigId"]),

@@ -28,10 +28,10 @@ async function createGig(req, res) {
             gig: formatGig(gig),
         });
     } catch (error) {
-        console.error("Create gig failed unexpectedly:", error.message);
+        console.error("Create gig failed unexpectedly:");
 
         return res.status(500).json({
-            message: "An unexpected error occured.",
+            message: "An unexpected error occurred.",
         });
     }
 }
@@ -45,10 +45,10 @@ async function listAvailableGigs(req, res) {
 
         return res.status(200).json({ gigs: gigs.map(formatGig) });
     } catch (error) {
-        console.error("List gigs failed unexpectedly:", error.message);
+        console.error("List gigs failed unexpectedly:");
 
         return res.status(500).json({
-            message: "An unexpected error occured.",
+            message: "An unexpected error occurred.",
         });
     }
 }
@@ -61,7 +61,7 @@ async function listMyGigs(req, res) {
 
         return res.status(200).json({ gigs: gigs.map(formatGig) });
     } catch (error) {
-        console.error("List my gigs failed unexpectedly:", error.message);
+        console.error("List my gigs failed unexpectedly:");
 
         return res.status(500).json({
             message: "An unexpected error occurred.",
@@ -77,7 +77,7 @@ async function getGigById(req, res) {
         );
 
         const isOwner = 
-            gig && gig.freelancer._id.toString() === req.user.id;
+            gig && gig.freelancer && gig.freelancer._id.toString() === req.user.id;
 
         if (!gig || (!gig.isAvailable && !isOwner)) {
             return res.status(404).json({ message: "Gig not found." });
@@ -85,10 +85,10 @@ async function getGigById(req, res) {
 
         return res.status(200).json({ gig: formatGig(gig) });
     } catch (error) {
-        console.error("Get gig failed unexpectedly:", error.message);
+        console.error("Get gig failed unexpectedly:");
 
         return res.status(500).json({
-            messsage: "An unexpected error occured.",
+            message: "An unexpected error occurred.",
         });
     }
 }
@@ -107,7 +107,7 @@ async function updateGig(req, res) {
         const gig = await Gig.findOneAndUpdate(
             { _id: req.params.id, freelancer: req.user.id },
             { $set: updates },
-            { new: true, runValidators: true }
+            { returnDocument: "after", runValidators: true }
         );
 
         if (!gig) {
@@ -119,7 +119,7 @@ async function updateGig(req, res) {
             gig: formatGig(gig),
         });
     } catch (error) {
-        console.error("Update gig failed unexpectedly:", error.message);
+        console.error("Update gig failed unexpectedly:");
 
         return res.status(500).json({
             message: "An unexpected error occurred.",
@@ -140,9 +140,9 @@ async function deleteGig(req, res) {
 
         return res.status(200).json({ message: "Gig deleted successfully." });
     } catch (error) {
-        console.error("Delete gig failed unexpectedly:", error.message);
+        console.error("Delete gig failed unexpectedly:");
 
-        returnres.status(500).json({
+        return res.status(500).json({
             message: "An unexpected error occurred.",
         });
     }

@@ -1,0 +1,156 @@
+{
+  "startedAt": "2026-10-12T16:04:59.143Z",
+  "tool": "ZAP 2.17.0",
+  "profile": "API injection follow-up",
+  "phases": [
+    {
+      "role": "client",
+      "contextScope": "https://127\\.0\\.0\\.1:55673/api(?:/.*)?",
+      "seedResponses": [
+        {
+          "method": "GET",
+          "route": "/api/protected",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "route": "/api/gigs",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "route": "/api/bookings/mine",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "route": "/api/bookings/6acd052c1bcaef3afed8a038",
+          "status": 200
+        },
+        {
+          "method": "POST",
+          "route": "/api/bookings",
+          "status": 201
+        }
+      ],
+      "activeScanStatus": "100",
+      "activeScanBudgetMinutes": 2,
+      "delayMilliseconds": 3000,
+      "alerts": [
+        {
+          "name": "Re-examine Cache-control Directives",
+          "risk": "Informational",
+          "confidence": "Low",
+          "url": "https://127.0.0.1:55673/api/bookings/6acd052c1bcaef3afed8a038",
+          "parameter": "cache-control",
+          "solution": "For secure content, ensure the cache-control HTTP header is set with \"no-cache, no-store, must-revalidate\". If an asset should be cached consider setting the directives \"public, max-age, immutable\"."
+        },
+        {
+          "name": "Re-examine Cache-control Directives",
+          "risk": "Informational",
+          "confidence": "Low",
+          "url": "https://127.0.0.1:55673/api/gigs",
+          "parameter": "cache-control",
+          "solution": "For secure content, ensure the cache-control HTTP header is set with \"no-cache, no-store, must-revalidate\". If an asset should be cached consider setting the directives \"public, max-age, immutable\"."
+        },
+        {
+          "name": "Re-examine Cache-control Directives",
+          "risk": "Informational",
+          "confidence": "Low",
+          "url": "https://127.0.0.1:55673/api/protected",
+          "parameter": "cache-control",
+          "solution": "For secure content, ensure the cache-control HTTP header is set with \"no-cache, no-store, must-revalidate\". If an asset should be cached consider setting the directives \"public, max-age, immutable\"."
+        },
+        {
+          "name": "Re-examine Cache-control Directives",
+          "risk": "Informational",
+          "confidence": "Low",
+          "url": "https://127.0.0.1:55673/api/bookings/mine",
+          "parameter": "cache-control",
+          "solution": "For secure content, ensure the cache-control HTTP header is set with \"no-cache, no-store, must-revalidate\". If an asset should be cached consider setting the directives \"public, max-age, immutable\"."
+        }
+      ],
+      "limitation": "Bounded active scan; rate limits remain enabled. Not an exhaustive penetration test."
+    },
+    {
+      "role": "freelancer",
+      "contextScope": "https://127\\.0\\.0\\.1:55673/api(?:/.*)?",
+      "seedResponses": [
+        {
+          "method": "GET",
+          "route": "/api/protected",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "route": "/api/gigs/mine",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "route": "/api/income",
+          "status": 200
+        },
+        {
+          "method": "POST",
+          "route": "/api/gigs",
+          "status": 201
+        },
+        {
+          "method": "PUT",
+          "route": "/api/gigs/6acd052c1bcaef3afed8a037",
+          "status": 200
+        }
+      ],
+      "activeScanStatus": "100",
+      "activeScanBudgetMinutes": 2,
+      "delayMilliseconds": 3000,
+      "alerts": [
+        {
+          "name": "Re-examine Cache-control Directives",
+          "risk": "Informational",
+          "confidence": "Low",
+          "url": "https://127.0.0.1:55673/api/gigs/mine",
+          "parameter": "cache-control",
+          "solution": "For secure content, ensure the cache-control HTTP header is set with \"no-cache, no-store, must-revalidate\". If an asset should be cached consider setting the directives \"public, max-age, immutable\"."
+        },
+        {
+          "name": "Re-examine Cache-control Directives",
+          "risk": "Informational",
+          "confidence": "Low",
+          "url": "https://127.0.0.1:55673/api/income",
+          "parameter": "cache-control",
+          "solution": "For secure content, ensure the cache-control HTTP header is set with \"no-cache, no-store, must-revalidate\". If an asset should be cached consider setting the directives \"public, max-age, immutable\"."
+        },
+        {
+          "name": "Re-examine Cache-control Directives",
+          "risk": "Informational",
+          "confidence": "Low",
+          "url": "https://127.0.0.1:55673/api/gigs/6acd052c1bcaef3afed8a037",
+          "parameter": "cache-control",
+          "solution": "For secure content, ensure the cache-control HTTP header is set with \"no-cache, no-store, must-revalidate\". If an asset should be cached consider setting the directives \"public, max-age, immutable\"."
+        },
+        {
+          "name": "Re-examine Cache-control Directives",
+          "risk": "Informational",
+          "confidence": "Low",
+          "url": "https://127.0.0.1:55673/api/protected",
+          "parameter": "cache-control",
+          "solution": "For secure content, ensure the cache-control HTTP header is set with \"no-cache, no-store, must-revalidate\". If an asset should be cached consider setting the directives \"public, max-age, immutable\"."
+        }
+      ],
+      "limitation": "Bounded active scan; rate limits remain enabled. Not an exhaustive penetration test."
+    }
+  ],
+  "selectedScanners": [
+    {
+      "id": "40012",
+      "name": "Cross Site Scripting (Reflected)"
+    },
+    {
+      "id": "40018",
+      "name": "SQL Injection"
+    }
+  ],
+  "completedAt": "2026-10-12T16:08:32.510Z"
+}

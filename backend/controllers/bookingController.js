@@ -55,7 +55,7 @@ async function createBooking(req, res) {
             },
         });
     } catch (error) {
-        console.error("Create booking failed unexpectedly:", error.message);
+        console.error("Create booking failed unexpectedly:");
 
         return res.status(500).json({
             message: "An unexpected error occurred.",
@@ -79,7 +79,7 @@ async function listMyBookings(req, res) {
             bookings: bookings.map(formatBooking),
         });
     } catch (error) {
-        console.error("List bookings failed unexpectedly:", error.message);
+        console.error("List bookings failed unexpectedly:");
 
         return res.status(500).json({
             message: "An unexpected error occurred.",
@@ -87,4 +87,24 @@ async function listMyBookings(req, res) {
     }
 }
 
-module.exports = { createBooking, listMyBookings };
+async function getMyBooking(req, res, next) {
+    const participant = req.user.role === "freelancer"
+        ? { freelancer: req.user.id }
+        : { client: req.user.id };
+    try {
+        const booking = await Booking.findOne({ _id: req.params.id, ...participant })
+            .populate("gig", "title");
+        if (!booking) return res.status(404).json({ message: "Booking not found." });
+        const transaction = await Transaction.findOne({ booking: booking._id, ...participant });
+        return res.json({
+            booking: formatBooking(booking),
+            transaction: transaction ? {
+                id: transaction._id, amount: transaction.amount, status: transaction.status,
+            } : null,
+        });
+    } catch (error) {
+        return next(error);
+    }
+}
+
+module.exports = { createBooking, listMyBookings, getMyBooking };

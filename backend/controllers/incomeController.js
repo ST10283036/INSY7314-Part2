@@ -6,7 +6,7 @@ async function getIncome(req, res) {
         const freelancerId = new mongoose.Types.ObjectId(req.user.id);
 
         const [summary] = await Transaction.aggregate([
-            { $match: { freelancer: freelancerId, status: "completed "} },
+            { $match: { freelancer: freelancerId, status: "completed" } },
             {
                 $group: {
                     _id: null,
@@ -34,7 +34,7 @@ async function getIncome(req, res) {
             })),
         });
     } catch (error) {
-        console.error("Get income failed unexpectedly:", error.message);
+        console.error("Get income failed unexpectedly:");
 
         return res.status(500).json({
             message: "An unexpected error occurred.",

@@ -1,0 +1,53 @@
+{
+  "completedAt": "2026-10-12T16:16:26.066Z",
+  "tool": "Newman",
+  "scope": "Dedicated local MongoDB and verified HTTPS",
+  "stats": {
+    "iterations": {
+      "total": 1,
+      "pending": 0,
+      "failed": 0
+    },
+    "items": {
+      "total": 39,
+      "pending": 0,
+      "failed": 0
+    },
+    "scripts": {
+      "total": 40,
+      "pending": 0,
+      "failed": 0
+    },
+    "prerequests": {
+      "total": 39,
+      "pending": 0,
+      "failed": 0
+    },
+    "requests": {
+      "total": 39,
+      "pending": 0,
+      "failed": 0
+    },
+    "tests": {
+      "total": 39,
+      "pending": 0,
+      "failed": 0
+    },
+    "assertions": {
+      "total": 57,
+      "pending": 0,
+      "failed": 0
+    },
+    "testScripts": {
+      "total": 39,
+      "pending": 0,
+      "failed": 0
+    },
+    "prerequestScripts": {
+      "total": 1,
+      "pending": 0,
+      "failed": 0
+    }
+  },
+  "failures": []
+}

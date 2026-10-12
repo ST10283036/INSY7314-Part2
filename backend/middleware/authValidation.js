@@ -40,7 +40,7 @@ function usernameRule() {
         .matches(/^[A-Za-z0-9_]+$/)
         .withMessage(
             "Username may contain only letters, numbers, and underscores."
-        );
+        ).toLowerCase();
 }
 
 function registrationPasswordRule() {

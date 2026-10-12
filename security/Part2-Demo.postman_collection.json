@@ -1,0 +1,419 @@
+{
+  "info": {
+    "name": "HustleHub Part 2 - Security Evidence Demo",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Import the private local demo environment first. Use a disposable local development database. Run the collection to execute quota checks."
+  },
+  "item": [
+    {
+      "name": "01 Security headers",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/health"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"01 Security headers\", function () { pm.response.to.have.status(200); });",
+              "pm.test('CSP is restrictive', function () { pm.expect(pm.response.headers.get('Content-Security-Policy')).to.include(\"script-src 'self'\"); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 Client denied gig creation",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{clientAToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/gigs",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Forbidden listing\",\n  \"description\": \"This listing must not be created.\",\n  \"price\": 50\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"02 Client denied gig creation\", function () { pm.response.to.have.status(403); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 Cross-owner gig edit denied",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{freelancerBToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/gigs/{{gigId}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Unauthorised change\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"03 Cross-owner gig edit denied\", function () { pm.response.to.have.status(404); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 Associated user sees booking and transaction",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{clientAToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/bookings/{{bookingId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"04 Associated user sees booking and transaction\", function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 Unrelated client cannot see booking",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{clientBToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/bookings/{{bookingId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"05 Unrelated client cannot see booking\", function () { pm.response.to.have.status(404); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 Client denied freelancer income",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{clientAToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/income"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"06 Client denied freelancer income\", function () { pm.response.to.have.status(403); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 Administrator summary",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/admin/summary"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"07 Administrator summary\", function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 Invalid JWT denied",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{clientAToken}}x"
+          }
+        ],
+        "url": "{{baseUrl}}/api/protected"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"08 Invalid JWT denied\", function () { pm.response.to.have.status(401); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 Query-shaped input denied",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": {\n    \"$ne\": null\n  },\n  \"password\": \"{{demoPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"09 Query-shaped input denied\", function () { pm.response.to.have.status(400); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 HTML sanitised before storage",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{freelancerAToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/gigs",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"<script>alert(1)</script><b>Safe title</b>\",\n  \"description\": \"Ordinary description for a local service.\",\n  \"price\": 50\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"10 HTML sanitised before storage\", function () { pm.response.to.have.status(201); });",
+              "pm.test('HTML removed', function () { pm.expect(pm.response.json().gig.title).to.equal('Safe title'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "11 Booking rate limit",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{clientAToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/bookings",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"gigId\": \"000000000000000000000000\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.variables.get('11 Booking rate limitCount')) pm.variables.set('11 Booking rate limitCount', '0');"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var count = Number(pm.variables.get('11 Booking rate limitCount') || '0') + 1;",
+              "pm.variables.set('11 Booking rate limitCount', String(count));",
+              "pm.test('Controlled quota response', function () { pm.expect([404,429]).to.include(pm.response.code); });",
+              "if (pm.response.code === 429) {",
+              "  pm.test('Retry information', function () { pm.expect(Number(pm.response.headers.get('Retry-After'))).to.be.above(0); });",
+              "} else if (count < 22) { pm.execution.setNextRequest('11 Booking rate limit'); }",
+              "else { pm.test('Rate limit reached', function () { pm.expect(pm.response.code).to.equal(429); }); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "12 Login rate limit",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"absent_rate_demo\",\n  \"password\": \"IncorrectDemo1!\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.variables.get('12 Login rate limitCount')) pm.variables.set('12 Login rate limitCount', '0');"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var count = Number(pm.variables.get('12 Login rate limitCount') || '0') + 1;",
+              "pm.variables.set('12 Login rate limitCount', String(count));",
+              "pm.test('Controlled quota response', function () { pm.expect([401,429]).to.include(pm.response.code); });",
+              "if (pm.response.code === 429) {",
+              "  pm.test('Retry information', function () { pm.expect(Number(pm.response.headers.get('Retry-After'))).to.be.above(0); });",
+              "} else if (count < 22) { pm.execution.setNextRequest('12 Login rate limit'); }",
+              "else { pm.test('Rate limit reached', function () { pm.expect(pm.response.code).to.equal(429); }); }"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

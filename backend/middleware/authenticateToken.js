@@ -1,6 +1,8 @@
 const jwt = require("jsonwebtoken");
+const User = require("../models/User");
+const VALID_ROLES = new Set(["client", "freelancer", "admin"]);
 
-function authenticateToken(req, res, next) {
+async function authenticateToken(req, res, next) {
     const authorization = req.get("authorization");
 
     const match = authorization
@@ -13,8 +15,9 @@ function authenticateToken(req, res, next) {
         });
     }
 
+    let decoded;
     try {
-        const decoded = jwt.verify(
+        decoded = jwt.verify(
             match[1],
             process.env.JWT_SECRET,
             {
@@ -25,28 +28,36 @@ function authenticateToken(req, res, next) {
         );
 
         if (
-            typeof decoded !== "object" ||
+            !decoded || typeof decoded !== "object" ||
             typeof decoded.id !== "string" ||
             !/^[a-f0-9]{24}$/i.test(decoded.id) ||
-            typeof decoded.role !== "string"
+            !VALID_ROLES.has(decoded.role) ||
+            decoded.sub !== decoded.id ||
+            !Number.isSafeInteger(decoded.iat) ||
+            !Number.isSafeInteger(decoded.exp) ||
+            decoded.exp <= decoded.iat ||
+            decoded.iat > Math.floor(Date.now() / 1000)
         ) {
             return res.status(401).json({
                 message: "Authentication required.",
             });
         }
 
-        req.user = {
-            id: decoded.id,
-            role: decoded.role,
-        };
-
-        return next();
     } catch {
-        console.error("Token rejected:", error.message);
-        
         return res.status(401).json({
             message: "Authentication required.",
         });
+    }
+
+    try {
+        const user = await User.findById(decoded.id).select("role isActive");
+        if (!user || user.isActive === false || !VALID_ROLES.has(user.role)) {
+            return res.status(401).json({ message: "Authentication required." });
+        }
+        req.user = { id: user._id.toString(), role: user.role };
+        return next();
+    } catch (error) {
+        return next(error);
     }
 }
 

@@ -1,0 +1,48 @@
+{
+  "role": "anonymous",
+  "contextScope": "https://127\\.0\\.0\\.1:49680/api(?:/.*)?",
+  "seedResponses": [
+    {
+      "method": "GET",
+      "route": "/api/health",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "route": "/api/protected",
+      "status": 401
+    },
+    {
+      "method": "POST",
+      "route": "/api/auth/login",
+      "status": 401
+    },
+    {
+      "method": "POST",
+      "route": "/api/auth/register",
+      "status": 400
+    }
+  ],
+  "activeScanStatus": "100",
+  "activeScanBudgetMinutes": 2,
+  "delayMilliseconds": 3000,
+  "alerts": [
+    {
+      "name": "Authentication Request Identified",
+      "risk": "Informational",
+      "confidence": "High",
+      "url": "https://127.0.0.1:49680/api/auth/login",
+      "parameter": "username",
+      "solution": "This is an informational alert rather than a vulnerability and so there is nothing to fix."
+    },
+    {
+      "name": "Re-examine Cache-control Directives",
+      "risk": "Informational",
+      "confidence": "Low",
+      "url": "https://127.0.0.1:49680/api/health",
+      "parameter": "cache-control",
+      "solution": "For secure content, ensure the cache-control HTTP header is set with \"no-cache, no-store, must-revalidate\". If an asset should be cached consider setting the directives \"public, max-age, immutable\"."
+    }
+  ],
+  "limitation": "Bounded active scan; rate limits remain enabled. Not an exhaustive penetration test."
+}
