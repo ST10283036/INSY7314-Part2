@@ -14,6 +14,8 @@ const authenticateToken = require(
 );
 const connectDatabase = require("./config/db");
 const gigRoutes = require("./routes/gigRoutes");
+const bookingRoutes = require("./routes/bookingRoutes");
+const incomeRoutes = require("./routes/incomeRoutes");
 
 const requiredSettings = [
     "JWT_SECRET",
@@ -67,6 +69,8 @@ app.get("/api/health", (req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/gigs", gigRoutes);
+app.use("/api/bookings", bookingRoutes);
+app.use("/api/income", incomeRoutes);
 
 app.get(
     "/api/protected",
