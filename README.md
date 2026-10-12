@@ -2,11 +2,11 @@
 
 ## Group Members
 
-| Name | Student Number | Role |
-|---|---|---|
-| Role 1 | ST00000000 | Backend & security |
-| Role 2 | ST00000000 | Frontend & testing |
-| Role 3 | ST00000000 | Documentation & DevOps |
+| Name | Student Number |
+|---|---|
+| Ayakha Ntsomi | ST10283036 |
+| Imran Awaldien | ST10458418 |
+| A | ST10440651 |
 
 ## Table of Contents
 
