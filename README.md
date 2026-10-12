@@ -3,7 +3,7 @@
 ## Group Members
 
 | Name | Student Number |
-|---|---|---|
+|---|---|
 | Ayakha Ntsomi | ST10283036 |
 | Imran Awaldien | ST10458418 |
 | Ashleigh Kruger | ST10440651 |
