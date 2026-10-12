@@ -8,6 +8,22 @@
 | Role 2 | ST00000000 | Frontend & testing |
 | Role 3 | ST00000000 | Documentation & DevOps |
 
+## Table of Contents
+
+- [Group Members](#group-members)
+- [2. System Overview](#2-system-overview)
+- [3. Intended Users](#3-intended-users)
+- [4. Architecture](#4-architecture)
+- [5. API Endpoints](#5-api-endpoints)
+- [6. Security Decisions](#6-security-decisions)
+- [7. Setup Instructions](#7-setup-instructions)
+- [8. Testing](#8-testing)
+- [9. Security Testing](#9-security-testing)
+- [10. Demonstration Video](#10-demonstration-video)
+- [11. Known Limitations (Part 2)](#11-known-limitations-part-2)
+- [12. AI Declaration](#12-ai-declaration)
+- [13. References](#13-references)
+
 ## 2. System Overview
 
 HustleHub+ is a secure freelance marketplace platform that allows freelancers to advertise
