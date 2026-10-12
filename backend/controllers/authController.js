@@ -7,6 +7,9 @@ const DEFAULT_ROLE = "client";
 
 async function register(req, res) {
     const { username, password, role } = req.body;
+    if (role !== undefined && !["client", "freelancer"].includes(role)) {
+        return res.status(400).json({ message: "Choose client or freelancer." });
+    }
 
     try {
         const existingUser = await User.findOne({
@@ -45,7 +48,7 @@ async function register(req, res) {
             });
         }
 
-        console.error("Registration failed unexpectedly.", error.message);
+        console.error("Registration failed unexpectedly.");
 
         return res.status(500).json({
             message: "An unexpected error occurred.",
@@ -59,9 +62,9 @@ async function login(req, res) {
     try {
         const user = await User.findOne({
             username: username.toLowerCase()
-        });
+        }).select("+passwordHash");
 
-        if (!user) {
+        if (!user || user.isActive === false) {
             return res.status(401).json({
                 message: "Invalid username or password.",
             });
@@ -115,4 +118,4 @@ async function login(req, res) {
     }
 }  
   
-module.exports = { register, login }; 
+module.exports = { register, login };

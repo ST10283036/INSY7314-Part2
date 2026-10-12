@@ -12,11 +12,16 @@ const userSchema = new mongoose.Schema(
         passwordHash: {
             type: String,
             required: true,
+            select: false,
         },
         role: {
             type: String,
             enum: ["client", "freelancer", "admin"],
             default: "client",
+        },
+        isActive: {
+            type: Boolean,
+            default: true,
         },
     },
     { timestamps: true }

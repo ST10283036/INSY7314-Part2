@@ -5,16 +5,9 @@ require("dotenv").config({
     quiet: true,
 });
 
-const express = require("express");
 const https = require("https");
 const fs = require("fs");
-const authRoutes = require("./routes/authRoutes");
-const authenticateToken = require(
-    "./middleware/authenticateToken"
-);
 const connectDatabase = require("./config/db");
-const gigRoutes = require("./routes/gigRoutes");
-const cors = require("cors");
 
 const requiredSettings = [
     "JWT_SECRET",
@@ -54,69 +47,14 @@ if (!Number.isInteger(port) || port < 1 || port > 65535) {
     process.exit(1);
 }
 
-const app = express();
-
-app.disable("x-powered-by");
-app.use(cors({ origin: "http://localhost:5173", credentials: true }));
-app.use(express.json({ limit: "10kb", strict: true }));
-
-app.get("/api/health", (req, res) => {
-    return res.status(200).json({
-        status: "ok",
-        protocol: "https",
-    });
-});
-
-app.use("/api/auth", authRoutes);
-app.use("/api/gigs", gigRoutes);
-
-app.get(
-    "/api/protected",
-    authenticateToken,
-    (req, res) => {
-        return res.status(200).json({
-            message: "Protected route accessed successfully.",
-            user: req.user,
-        });
-    }
-);
-
-app.use((req, res) => {
-    return res.status(404).json({
-        message: "Route not found.",
-    });
-});
-
-app.use((error, req, res, next) => {
-    if (res.headersSent) {
-        return next(error);
-    }
-
-    if (error.type === "entity.too.large") {
-        return res.status(413).json({
-            message: "Request body is too large.",
-        });
-    }
-
-    if (error.type === "entity.parse.failed") {
-        return res.status(400).json({
-            message: "Invalid JSON body.",
-        });
-    }
-
-    console.error("An unhandled request error occurred.");
-
-    return res.status(500).json({
-        message: "An unexpected error occurred.",
-    });
-});
+const app = require("./app");
 
 async function startServer() {
     try {
         await connectDatabase();
     } catch {
         console.error(
-            "Could not connect to the databse. Check that MongoDB is running and MONGO_URI is correct."
+            "Could not connect to the database. Check MongoDB and MONGO_URI."
         );
         process.exit(1);
     }
@@ -131,7 +69,14 @@ async function startServer() {
         ),
     };
 
-    https.createServer(httpsOptions, app).listen(
+    const server = https.createServer(httpsOptions, app);
+    server.on("error", (error) => {
+        console.error(error.code === "EADDRINUSE"
+            ? "The configured port is already in use. Stop the existing server first."
+            : "HTTPS server could not start.");
+        process.exit(1);
+    });
+    server.listen(
         port,
         () => {
             console.log(

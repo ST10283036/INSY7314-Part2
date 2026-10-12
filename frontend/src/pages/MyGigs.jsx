@@ -99,7 +99,8 @@ export default function MyGigs() {
           Price (ZAR)
           <input
             type="number"
-            min="0"
+            min="1"
+            max="1000000"
             step="0.01"
             value={price}
             onChange={(e) => setPrice(e.target.value)}

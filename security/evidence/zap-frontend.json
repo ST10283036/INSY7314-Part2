@@ -1,0 +1,78 @@
+{
+  "completedAt": "2026-10-12T16:45:20.859Z",
+  "contextScope": "https://127\\.0\\.0\\.1:54032/.*",
+  "method": "Passive scanning of real Chrome frontend and authenticated API traffic",
+  "limitation": "Frontend passive scan supplements separately recorded API active scans; it is not a frontend active scan.",
+  "alerts": [
+    {
+      "name": "Re-examine Cache-control Directives",
+      "risk": "Informational",
+      "confidence": "Low",
+      "url": "https://127.0.0.1:54032/register",
+      "solution": "For secure content, ensure the cache-control HTTP header is set with \"no-cache, no-store, must-revalidate\". If an asset should be cached consider setting the directives \"public, max-age, immutable\"."
+    },
+    {
+      "name": "Modern Web Application",
+      "risk": "Informational",
+      "confidence": "Medium",
+      "url": "https://127.0.0.1:54032/register",
+      "solution": "This is an informational alert and so no changes are required."
+    },
+    {
+      "name": "Information Disclosure - Suspicious Comments",
+      "risk": "Informational",
+      "confidence": "Low",
+      "url": "https://127.0.0.1:54032/assets/index-BAYA9HEa.js",
+      "solution": "Remove all comments that return information that may help an attacker and fix any underlying problems they refer to."
+    },
+    {
+      "name": "Authentication Request Identified",
+      "risk": "Informational",
+      "confidence": "High",
+      "url": "https://127.0.0.1:54032/api/auth/login",
+      "solution": "This is an informational alert rather than a vulnerability and so there is nothing to fix."
+    },
+    {
+      "name": "Session Management Response Identified",
+      "risk": "Informational",
+      "confidence": "Medium",
+      "url": "https://127.0.0.1:54032/api/auth/login",
+      "solution": "This is an informational alert rather than a vulnerability and so there is nothing to fix."
+    },
+    {
+      "name": "Re-examine Cache-control Directives",
+      "risk": "Informational",
+      "confidence": "Low",
+      "url": "https://127.0.0.1:54032/my-gigs",
+      "solution": "For secure content, ensure the cache-control HTTP header is set with \"no-cache, no-store, must-revalidate\". If an asset should be cached consider setting the directives \"public, max-age, immutable\"."
+    },
+    {
+      "name": "Re-examine Cache-control Directives",
+      "risk": "Informational",
+      "confidence": "Low",
+      "url": "https://127.0.0.1:54032/api/gigs",
+      "solution": "For secure content, ensure the cache-control HTTP header is set with \"no-cache, no-store, must-revalidate\". If an asset should be cached consider setting the directives \"public, max-age, immutable\"."
+    },
+    {
+      "name": "Modern Web Application",
+      "risk": "Informational",
+      "confidence": "Medium",
+      "url": "https://127.0.0.1:54032/my-gigs",
+      "solution": "This is an informational alert and so no changes are required."
+    },
+    {
+      "name": "Re-examine Cache-control Directives",
+      "risk": "Informational",
+      "confidence": "Low",
+      "url": "https://127.0.0.1:54032/api/gigs/mine",
+      "solution": "For secure content, ensure the cache-control HTTP header is set with \"no-cache, no-store, must-revalidate\". If an asset should be cached consider setting the directives \"public, max-age, immutable\"."
+    },
+    {
+      "name": "Authentication Request Identified",
+      "risk": "Informational",
+      "confidence": "High",
+      "url": "https://127.0.0.1:54032/api/auth/login",
+      "solution": "This is an informational alert rather than a vulnerability and so there is nothing to fix."
+    }
+  ]
+}

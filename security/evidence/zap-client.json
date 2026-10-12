@@ -1,0 +1,69 @@
+{
+  "role": "client",
+  "contextScope": "https://127\\.0\\.0\\.1:49680/api(?:/.*)?",
+  "seedResponses": [
+    {
+      "method": "GET",
+      "route": "/api/protected",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "route": "/api/gigs",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "route": "/api/bookings/mine",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "route": "/api/bookings/6accfc74998952dfa298702f",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "route": "/api/bookings",
+      "status": 201
+    }
+  ],
+  "activeScanStatus": "100",
+  "activeScanBudgetMinutes": 2,
+  "delayMilliseconds": 3000,
+  "alerts": [
+    {
+      "name": "Re-examine Cache-control Directives",
+      "risk": "Informational",
+      "confidence": "Low",
+      "url": "https://127.0.0.1:49680/api/gigs",
+      "parameter": "cache-control",
+      "solution": "For secure content, ensure the cache-control HTTP header is set with \"no-cache, no-store, must-revalidate\". If an asset should be cached consider setting the directives \"public, max-age, immutable\"."
+    },
+    {
+      "name": "Re-examine Cache-control Directives",
+      "risk": "Informational",
+      "confidence": "Low",
+      "url": "https://127.0.0.1:49680/api/bookings/6accfc74998952dfa298702f",
+      "parameter": "cache-control",
+      "solution": "For secure content, ensure the cache-control HTTP header is set with \"no-cache, no-store, must-revalidate\". If an asset should be cached consider setting the directives \"public, max-age, immutable\"."
+    },
+    {
+      "name": "Re-examine Cache-control Directives",
+      "risk": "Informational",
+      "confidence": "Low",
+      "url": "https://127.0.0.1:49680/api/protected",
+      "parameter": "cache-control",
+      "solution": "For secure content, ensure the cache-control HTTP header is set with \"no-cache, no-store, must-revalidate\". If an asset should be cached consider setting the directives \"public, max-age, immutable\"."
+    },
+    {
+      "name": "Re-examine Cache-control Directives",
+      "risk": "Informational",
+      "confidence": "Low",
+      "url": "https://127.0.0.1:49680/api/bookings/mine",
+      "parameter": "cache-control",
+      "solution": "For secure content, ensure the cache-control HTTP header is set with \"no-cache, no-store, must-revalidate\". If an asset should be cached consider setting the directives \"public, max-age, immutable\"."
+    }
+  ],
+  "limitation": "Bounded active scan; rate limits remain enabled. Not an exhaustive penetration test."
+}

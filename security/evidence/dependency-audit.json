@@ -1,0 +1,165 @@
+{
+  "completedAt": "2026-10-12T15:35:56.165Z",
+  "production": {
+    "counts": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0,
+      "total": 0
+    },
+    "advisories": []
+  },
+  "includingDevelopmentTools": {
+    "counts": {
+      "info": 0,
+      "low": 0,
+      "moderate": 7,
+      "high": 11,
+      "critical": 1,
+      "total": 19
+    },
+    "advisories": [
+      {
+        "package": "@faker-js/faker",
+        "severity": "high",
+        "references": [
+          "https://github.com/advisories/GHSA-qxc2-j82w-r537"
+        ]
+      },
+      {
+        "package": "csv-parse",
+        "severity": "moderate",
+        "references": [
+          "https://github.com/advisories/GHSA-8cw4-87c7-c6xx"
+        ]
+      },
+      {
+        "package": "flatted",
+        "severity": "high",
+        "references": [
+          "https://github.com/advisories/GHSA-25h7-pfq9-p65f",
+          "https://github.com/advisories/GHSA-rf6f-7fwh-wjgh"
+        ]
+      },
+      {
+        "package": "handlebars",
+        "severity": "critical",
+        "references": [
+          "https://github.com/advisories/GHSA-3mfm-83xf-c92r",
+          "https://github.com/advisories/GHSA-2w6w-674q-4c4q",
+          "https://github.com/advisories/GHSA-2qvq-rjwj-gvw9",
+          "https://github.com/advisories/GHSA-7rx3-28cr-v5wh",
+          "https://github.com/advisories/GHSA-442j-39wm-28r2",
+          "https://github.com/advisories/GHSA-xhpv-hc6g-r9c6",
+          "https://github.com/advisories/GHSA-9cx6-37pm-9jff",
+          "https://github.com/advisories/GHSA-xjpj-3mr7-gcpf",
+          "https://github.com/advisories/GHSA-xw65-4hp5-5hc7",
+          "https://github.com/advisories/GHSA-8r5x-fm3f-whwj",
+          "https://github.com/advisories/GHSA-p8wg-vrv2-v86f"
+        ]
+      },
+      {
+        "package": "httpntlm",
+        "severity": "high",
+        "references": []
+      },
+      {
+        "package": "jose",
+        "severity": "moderate",
+        "references": [
+          "https://github.com/advisories/GHSA-hhhv-q57g-882q"
+        ]
+      },
+      {
+        "package": "lodash",
+        "severity": "high",
+        "references": [
+          "https://github.com/advisories/GHSA-r5fr-rjxr-66jc",
+          "https://github.com/advisories/GHSA-f23m-r3pf-42rh",
+          "https://github.com/advisories/GHSA-xxjr-mmjv-4gpg"
+        ]
+      },
+      {
+        "package": "newman",
+        "severity": "high",
+        "references": []
+      },
+      {
+        "package": "node-forge",
+        "severity": "high",
+        "references": [
+          "https://github.com/advisories/GHSA-554w-wpv2-vw27",
+          "https://github.com/advisories/GHSA-5gfm-wpxj-wjgq",
+          "https://github.com/advisories/GHSA-65ch-62r8-g69g",
+          "https://github.com/advisories/GHSA-2328-f5f3-gj25",
+          "https://github.com/advisories/GHSA-q67f-28xg-22rw",
+          "https://github.com/advisories/GHSA-5m6q-g25r-mvwx",
+          "https://github.com/advisories/GHSA-ppp5-5v6c-4jwp",
+          "https://github.com/advisories/GHSA-86w9-cpqp-85rv"
+        ]
+      },
+      {
+        "package": "postman-collection",
+        "severity": "high",
+        "references": []
+      },
+      {
+        "package": "postman-collection-transformer",
+        "severity": "moderate",
+        "references": []
+      },
+      {
+        "package": "postman-request",
+        "severity": "moderate",
+        "references": []
+      },
+      {
+        "package": "postman-runtime",
+        "severity": "high",
+        "references": []
+      },
+      {
+        "package": "postman-sandbox",
+        "severity": "high",
+        "references": []
+      },
+      {
+        "package": "qs",
+        "severity": "moderate",
+        "references": [
+          "https://github.com/advisories/GHSA-6rw7-vpxm-498p",
+          "https://github.com/advisories/GHSA-q8mj-m7cp-5q26",
+          "https://github.com/advisories/GHSA-x5fp-wj9c-mxmx",
+          "https://github.com/advisories/GHSA-4mjr-xmp4-gh2g"
+        ]
+      },
+      {
+        "package": "serialised-error",
+        "severity": "moderate",
+        "references": []
+      },
+      {
+        "package": "underscore",
+        "severity": "high",
+        "references": [
+          "https://github.com/advisories/GHSA-qpx9-hpmf-5gmw"
+        ]
+      },
+      {
+        "package": "uuid",
+        "severity": "moderate",
+        "references": [
+          "https://github.com/advisories/GHSA-w5hq-g745-h8pq"
+        ]
+      },
+      {
+        "package": "uvm",
+        "severity": "high",
+        "references": []
+      }
+    ]
+  },
+  "note": "Development-tool advisories must be reviewed separately; do not run untrusted Postman collections. No forced dependency downgrade was applied."
+}

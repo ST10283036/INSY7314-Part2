@@ -1,0 +1,15 @@
+{
+  "completedAt": "2026-10-12T16:45:21.295Z",
+  "browser": "Google Chrome",
+  "passed": 6,
+  "cases": [
+    "React registration page renders under the served CSP",
+    "Freelancer registration and login use the same-origin HTTPS API",
+    "Gig input is sanitised and scripting payloads do not execute",
+    "Client registration and login work under CSP",
+    "Forging the browser role cannot grant backend freelancer permissions",
+    "No CSP violation events occurred during the tested flows"
+  ],
+  "cspViolationCount": 0,
+  "tlsNote": "Self-signed certificate accepted only in the isolated local browser context; Newman verifies the CA separately."
+}
