@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import apiClient from "../api/client";
+import { getErrorMessage } from "../api/errorMessage";
 import { useAuth } from "../context/AuthContext";
 
 export default function Bookings() {
@@ -62,9 +63,7 @@ export default function Bookings() {
         setDetail(null);
       }
     } catch (err) {
-      setCancelError(
-        err.response?.data?.message || "Could not cancel this booking."
-      );
+      setCancelError(getErrorMessage(err, "Could not cancel this booking."));
     } finally {
       setCancellingId(null);
     }

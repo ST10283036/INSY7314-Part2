@@ -1,5 +1,6 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import apiClient from "../api/client";
+import { getErrorMessage } from "../api/errorMessage";
 
 export default function MyGigs() {
   const [gigs, setGigs] = useState([]);
@@ -41,9 +42,7 @@ export default function MyGigs() {
       setPrice("");
       await fetchMyGigs();
     } catch (err) {
-      setFormError(
-        err.response?.data?.message || "Could not create gig."
-      );
+      setFormError(getErrorMessage(err, "Could not create gig."));
     } finally {
       setSubmitting(false);
     }

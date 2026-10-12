@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import apiClient from "../api/client";
+import { getErrorMessage } from "../api/errorMessage";
 import { useAuth } from "../context/AuthContext";
 
 export default function Gigs() {
@@ -47,9 +48,7 @@ export default function Gigs() {
         `Booked "${gig.title}". View it in My Bookings.`
       );
     } catch (err) {
-      setBookingError(
-        err.response?.data?.message || "Could not book this gig."
-      );
+      setBookingError(getErrorMessage(err, "Could not book this gig."));
     } finally {
       setBookingGigId(null);
     }

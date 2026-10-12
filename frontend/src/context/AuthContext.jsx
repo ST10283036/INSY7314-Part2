@@ -1,5 +1,6 @@
-﻿import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState } from "react";
 import apiClient from "../api/client";
+import { getErrorMessage } from "../api/errorMessage";
 
 const AuthContext = createContext(null);
 
@@ -21,8 +22,7 @@ export function AuthProvider({ children }) {
       });
       return response.data;
     } catch (err) {
-      const message =
-        err.response?.data?.message || "Registration failed. Please try again.";
+      const message = getErrorMessage(err, "Registration failed. Please try again.");
       setError(message);
       throw new Error(message);
     }
@@ -42,8 +42,7 @@ export function AuthProvider({ children }) {
       setUser(loggedInUser);
       return loggedInUser;
     } catch (err) {
-      const message =
-        err.response?.data?.message || "Login failed. Please try again.";
+      const message = getErrorMessage(err, "Login failed. Please try again.");
       setError(message);
       throw new Error(message);
     }

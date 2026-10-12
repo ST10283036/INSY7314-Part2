@@ -161,4 +161,24 @@ describe("Bookings page", () => {
       await screen.findByText(/booking is already cancelled/i)
     ).toBeInTheDocument();
   });
+
+  it("shows the specific field message when cancelling fails validation", async () => {
+    apiClient.get.mockResolvedValue({ data: { bookings: [confirmedBooking()] } });
+    apiClient.patch.mockRejectedValue({
+      response: {
+        data: {
+          message: "Validation failed.",
+          errors: [{ field: "id", message: "Invalid booking id." }],
+        },
+      },
+    });
+
+    const user = userEvent.setup();
+    render(<Bookings />);
+
+    await screen.findByText("Logo Design");
+    await user.click(screen.getByRole("button", { name: /^cancel$/i }));
+
+    expect(await screen.findByText("Invalid booking id.")).toBeInTheDocument();
+  });
 });

@@ -119,6 +119,37 @@ describe("Gigs page", () => {
     ).toBeInTheDocument();
   });
 
+  it("shows the specific field message when booking fails validation", async () => {
+    apiClient.get.mockResolvedValue({
+      data: {
+        gigs: [
+          {
+            id: "1",
+            title: "Logo Design",
+            description: "I will design a logo",
+            price: 500,
+            freelancer: { username: "bob" },
+          },
+        ],
+      },
+    });
+    apiClient.post.mockRejectedValue({
+      response: {
+        data: {
+          message: "Validation failed.",
+          errors: [{ field: "gigId", message: "Invalid gig id." }],
+        },
+      },
+    });
+    const user = userEvent.setup();
+    render(<Gigs />);
+
+    const bookButton = await screen.findByRole("button", { name: /^book$/i });
+    await user.click(bookButton);
+
+    expect(await screen.findByText("Invalid gig id.")).toBeInTheDocument();
+  });
+
   it("does not show a Book button for freelancers", async () => {
     useAuth.mockReturnValue({ user: { username: "bob", role: "freelancer" } });
     apiClient.get.mockResolvedValue({
