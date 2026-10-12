@@ -1,4 +1,4 @@
-﻿import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 export default function Navbar() {
@@ -18,6 +18,8 @@ export default function Navbar() {
           <>
             <Link to="/gigs">Browse Gigs</Link>
             {user?.role === "freelancer" && <Link to="/my-gigs">My Gigs</Link>}
+            <Link to="/bookings">My Bookings</Link>
+            {user?.role === "freelancer" && <Link to="/income">Income</Link>}
             <span className="navbar-user">{user?.username} ({user?.role})</span>
             <button onClick={handleLogout}>Log out</button>
           </>

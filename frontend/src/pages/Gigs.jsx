@@ -1,10 +1,15 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import apiClient from "../api/client";
+import { useAuth } from "../context/AuthContext";
 
 export default function Gigs() {
+  const { user } = useAuth();
   const [gigs, setGigs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [bookingGigId, setBookingGigId] = useState(null);
+  const [bookedGigIds, setBookedGigIds] = useState([]);
+  const [bookingError, setBookingError] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -32,12 +37,28 @@ export default function Gigs() {
     };
   }, []);
 
+  async function handleBook(gig) {
+    setBookingError("");
+    setBookingGigId(gig.id);
+    try {
+      await apiClient.post("/bookings", { gigId: gig.id });
+      setBookedGigIds((prev) => [...prev, gig.id]);
+    } catch (err) {
+      setBookingError(
+        err.response?.data?.message || "Could not book this gig."
+      );
+    } finally {
+      setBookingGigId(null);
+    }
+  }
+
   if (loading) return <div className="page">Loading gigs...</div>;
   if (error) return <div className="page form-error">{error}</div>;
 
   return (
     <div className="page">
       <h1>Browse Gigs</h1>
+      {bookingError && <p className="form-error">{bookingError}</p>}
       {gigs.length === 0 ? (
         <p>No gigs available right now.</p>
       ) : (
@@ -50,6 +71,22 @@ export default function Gigs() {
               <p className="gig-freelancer">
                 by {gig.freelancer?.username ?? "Unknown"}
               </p>
+              {user?.role === "client" && (
+                <div className="gig-actions">
+                  <button
+                    onClick={() => handleBook(gig)}
+                    disabled={
+                      bookingGigId === gig.id || bookedGigIds.includes(gig.id)
+                    }
+                  >
+                    {bookedGigIds.includes(gig.id)
+                      ? "Booked"
+                      : bookingGigId === gig.id
+                      ? "Booking..."
+                      : "Book"}
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>

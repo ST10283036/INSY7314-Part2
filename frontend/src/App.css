@@ -164,3 +164,19 @@ body {
 .gig-actions button.danger {
   background: #e94560;
 }
+
+.booking-detail {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #eee;
+  font-size: 0.9rem;
+}
+
+.income-summary {
+  max-width: 280px;
+  margin-top: 1rem;
+}
+
+.income-summary .gig-price {
+  font-size: 1.75rem;
+}

@@ -1,17 +1,26 @@
-﻿import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import Gigs from "../pages/Gigs";
 import apiClient from "../api/client";
+import { useAuth } from "../context/AuthContext";
 
 vi.mock("../api/client", () => ({
   default: {
     get: vi.fn(),
+    post: vi.fn(),
   },
+}));
+
+vi.mock("../context/AuthContext", () => ({
+  useAuth: vi.fn(),
 }));
 
 describe("Gigs page", () => {
   beforeEach(() => {
     apiClient.get.mockReset();
+    apiClient.post.mockReset();
+    useAuth.mockReturnValue({ user: { username: "alice", role: "client" } });
   });
 
   it("shows a loading state initially", () => {
@@ -52,5 +61,77 @@ describe("Gigs page", () => {
     apiClient.get.mockRejectedValue(new Error("Network error"));
     render(<Gigs />);
     expect(await screen.findByText(/could not load gigs/i)).toBeInTheDocument();
+  });
+
+  it("lets a client book a gig", async () => {
+    apiClient.get.mockResolvedValue({
+      data: {
+        gigs: [
+          {
+            id: "1",
+            title: "Logo Design",
+            description: "I will design a logo",
+            price: 500,
+            freelancer: { username: "bob" },
+          },
+        ],
+      },
+    });
+    apiClient.post.mockResolvedValue({ data: { message: "Booking confirmed." } });
+    const user = userEvent.setup();
+    render(<Gigs />);
+
+    const bookButton = await screen.findByRole("button", { name: /book/i });
+    await user.click(bookButton);
+
+    expect(apiClient.post).toHaveBeenCalledWith("/bookings", { gigId: "1" });
+    expect(await screen.findByRole("button", { name: /booked/i })).toBeDisabled();
+  });
+
+  it("shows an error when booking fails", async () => {
+    apiClient.get.mockResolvedValue({
+      data: {
+        gigs: [
+          {
+            id: "1",
+            title: "Logo Design",
+            description: "I will design a logo",
+            price: 500,
+            freelancer: { username: "bob" },
+          },
+        ],
+      },
+    });
+    apiClient.post.mockRejectedValue({
+      response: { data: { message: "Gig not found" } },
+    });
+    const user = userEvent.setup();
+    render(<Gigs />);
+
+    const bookButton = await screen.findByRole("button", { name: /book/i });
+    await user.click(bookButton);
+
+    expect(await screen.findByText("Gig not found")).toBeInTheDocument();
+  });
+
+  it("does not show a Book button for freelancers", async () => {
+    useAuth.mockReturnValue({ user: { username: "bob", role: "freelancer" } });
+    apiClient.get.mockResolvedValue({
+      data: {
+        gigs: [
+          {
+            id: "1",
+            title: "Logo Design",
+            description: "I will design a logo",
+            price: 500,
+            freelancer: { username: "bob" },
+          },
+        ],
+      },
+    });
+    render(<Gigs />);
+
+    await screen.findByText("Logo Design");
+    expect(screen.queryByRole("button", { name: /book/i })).not.toBeInTheDocument();
   });
 });
