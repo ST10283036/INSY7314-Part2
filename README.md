@@ -1,6 +1,14 @@
 # HustleHub+ — Part 2: Core Marketplace Features & Security Hardening
 
-## 1. System Overview
+## Group Members
+
+| Name | Student Number | Role |
+|---|---|---|
+| Role 1 | ST00000000 | Backend & security |
+| Role 2 | ST00000000 | Frontend & testing |
+| Role 3 | ST00000000 | Documentation & DevOps |
+
+## 2. System Overview
 
 HustleHub+ is a secure freelance marketplace platform that allows freelancers to advertise
 services and clients to browse and book those services. The system records financial
@@ -28,7 +36,7 @@ end-to-end token verification.
   Library for the frontend) and a documented, role-scoped security-testing pass (npm audit,
   OWASP ZAP, Nmap)
 
-## 2. Intended Users
+## 3. Intended Users
 
 | Role | Description |
 |---|---|
@@ -42,7 +50,7 @@ Section 6). Every protected route that performs a write or exposes role-specific
 enforced server-side by a `requireRole(...)` middleware — the role claimed in the JWT is
 checked on every request, not just trusted from the client.
 
-## 3. Architecture
+## 4. Architecture
 
 See `ArchitectureDiagramINSY7314.drawio.png` in this repository for the full system diagram.
 
@@ -96,7 +104,7 @@ frontend/
 Separating routes, controllers, and middleware keeps request routing, business logic, and
 cross-cutting concerns (validation, auth, rate limiting) independently testable.
 
-## 4. API Endpoints
+## 5. API Endpoints
 
 | Method | Endpoint | Description | Auth required |
 |---|---|---|---|
@@ -117,7 +125,7 @@ cross-cutting concerns (validation, auth, rate limiting) independently testable.
 | GET | `/api/income` | Get the authenticated freelancer's income summary | Yes (freelancer) |
 | GET | `/api/admin/summary` | Aggregate counts of users, gigs, bookings, transactions | Yes (admin) |
 
-## 5. Security Decisions
+## 6. Security Decisions
 
 ### Password hashing
 Passwords are hashed using **bcrypt with a cost factor of 12** before being stored [1], [2].
@@ -176,7 +184,7 @@ The API only runs over HTTPS, using a locally generated self-signed TLS certific
 Nmap TLS/cipher scan (Section 8) confirmed every supported cipher suite rates "A" strength,
 with no weak or legacy ciphers offered.
 
-## 6. Setup Instructions
+## 7. Setup Instructions
 
 ```bash
 git clone <repo-url>
@@ -251,7 +259,7 @@ to run repeatedly and simply updates the existing `demo_admin` account if one al
 > as untrusted by default. Disable SSL certificate verification in Postman's settings, or
 > accept the browser's security warning, for local testing.
 
-## 7. Testing
+## 8. Testing
 
 ### Backend: Postman + Newman
 Two Postman collections cover the API end to end:
@@ -301,7 +309,7 @@ Output: `screenshots/vitest-run-output.txt`.
 Screenshots of every Postman request/response pair from Part 1, and the full result sets
 described above for Part 2, are included in this repository as evidence.
 
-## 8. Security Testing
+## 9. Security Testing
 
 Beyond functional testing, the backend was assessed using a standard security-testing
 methodology: dependency scanning, dynamic vulnerability scanning, and network/TLS scanning.
@@ -343,12 +351,12 @@ Nmap [11] was used for two scans against the backend host:
 
 Full output: `screenshots/nmap-full-port-scan.txt` and `screenshots/nmap-tls-service-scan.txt`.
 
-## 9. Demonstration Video
+## 10. Demonstration Video
 
 [PLACEHOLDER — replace with the real link once the video is recorded and uploaded unlisted]
 https://youtu.be/REPLACE_ME
 
-## 10. Known Limitations (Part 2)
+## 11. Known Limitations (Part 2)
 
 - The TLS certificate is self-signed and intended for local development only; a production
   deployment would require a certificate from a trusted certificate authority.
@@ -365,7 +373,23 @@ https://youtu.be/REPLACE_ME
 - `npm audit` findings are confined to `newman`, a development-only dependency used purely for
   running the Postman test suites; it is never installed or run in production.
 
-## 11. References
+## 12. AI Declaration
+
+Generative AI (Claude, Anthropic) was used during the development of this project to assist
+with:
+- Structuring backend code (routes, controllers, middleware) and frontend components following
+  consistent, idiomatic patterns.
+- Diagnosing and explaining error messages and unexpected behaviour (e.g. validation failures,
+  TLS certificate issues, HTTP status codes), and helping implement the corresponding fixes.
+- Drafting and reviewing automated tests (Vitest/React Testing Library and Postman/Newman
+  collections) alongside the application code they exercise.
+- Reviewing, updating, and formatting project documentation, including this README.
+
+All AI-assisted output was reviewed, tested, and verified by the group before being committed.
+Architectural decisions, security requirements, and final implementation choices remain the
+responsibility of the group members listed above.
+
+## 13. References
 
 [1] npm, Inc., "bcrypt," *npm*, 2026. [Online]. Available: https://www.npmjs.com/package/bcrypt. [Accessed: 12-Oct-2026].
 
