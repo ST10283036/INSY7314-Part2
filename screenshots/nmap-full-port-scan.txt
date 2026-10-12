@@ -1,0 +1,35 @@
+# Nmap 7.991 scan initiated Mon Oct 12 21:04:52 2026 as: "C:\\Program Files (x86)\\Nmap\\nmap.exe" -p- -oN screenshots\\nmap-full-port-scan.txt 127.0.0.1
+Nmap scan report for localhost (127.0.0.1)
+Host is up (0.00085s latency).
+Not shown: 65507 closed tcp ports (reset)
+PORT      STATE    SERVICE
+135/tcp   open     msrpc
+137/tcp   filtered netbios-ns
+445/tcp   open     microsoft-ds
+3306/tcp  open     mysql
+5000/tcp  open     upnp
+5037/tcp  open     unknown
+5040/tcp  open     unknown
+8080/tcp  open     http-proxy
+15611/tcp open     unknown
+27017/tcp open     mongod
+33060/tcp open     mysqlx
+49664/tcp open     unknown
+49665/tcp open     unknown
+49666/tcp open     unknown
+49667/tcp open     unknown
+49668/tcp open     unknown
+49698/tcp open     unknown
+49701/tcp open     unknown
+49856/tcp open     unknown
+53431/tcp open     unknown
+54696/tcp open     unknown
+59061/tcp open     unknown
+59689/tcp open     unknown
+62300/tcp open     unknown
+62727/tcp open     unknown
+63342/tcp open     unknown
+64321/tcp open     unknown
+64322/tcp open     unknown
+
+# Nmap done at Mon Oct 12 21:04:59 2026 -- 1 IP address (1 host up) scanned in 6.56 seconds

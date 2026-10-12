@@ -1,0 +1,51 @@
+# Nmap 7.991 scan initiated Mon Oct 12 21:05:11 2026 as: "C:\\Program Files (x86)\\Nmap\\nmap.exe" -sV -sC --script ssl-cert,ssl-enum-ciphers -p 5000 -oN screenshots\\nmap-tls-service-scan.txt 127.0.0.1
+Nmap scan report for localhost (127.0.0.1)
+Host is up (0.027s latency).
+
+PORT     STATE SERVICE VERSION
+5000/tcp open  upnp?
+| ssl-enum-ciphers: 
+|   TLSv1.2: 
+|     ciphers: 
+|       TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 (ecdh_x25519) - A
+|       TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 (ecdh_x25519) - A
+|       TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256 (ecdh_x25519) - A
+|       TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384 (ecdh_x25519) - A
+|       TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256 (ecdh_x25519) - A
+|       TLS_ECDHE_RSA_WITH_ARIA_256_GCM_SHA384 (ecdh_x25519) - A
+|       TLS_ECDHE_RSA_WITH_ARIA_128_GCM_SHA256 (ecdh_x25519) - A
+|       TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA (ecdh_x25519) - A
+|       TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA (ecdh_x25519) - A
+|       TLS_RSA_WITH_AES_256_GCM_SHA384 (rsa 2048) - A
+|       TLS_RSA_WITH_AES_256_CCM (rsa 2048) - A
+|       TLS_RSA_WITH_ARIA_256_GCM_SHA384 (rsa 2048) - A
+|       TLS_RSA_WITH_AES_128_GCM_SHA256 (rsa 2048) - A
+|       TLS_RSA_WITH_AES_128_CCM (rsa 2048) - A
+|       TLS_RSA_WITH_ARIA_128_GCM_SHA256 (rsa 2048) - A
+|       TLS_RSA_WITH_AES_256_CBC_SHA256 (rsa 2048) - A
+|       TLS_RSA_WITH_AES_128_CBC_SHA256 (rsa 2048) - A
+|       TLS_RSA_WITH_AES_256_CBC_SHA (rsa 2048) - A
+|       TLS_RSA_WITH_AES_128_CBC_SHA (rsa 2048) - A
+|     compressors: 
+|       NULL
+|     cipher preference: server
+|   TLSv1.3: 
+|     ciphers: 
+|       TLS_AKE_WITH_AES_256_GCM_SHA384 (X25519MLKEM768) - A
+|       TLS_AKE_WITH_CHACHA20_POLY1305_SHA256 (X25519MLKEM768) - A
+|       TLS_AKE_WITH_AES_128_GCM_SHA256 (X25519MLKEM768) - A
+|     cipher preference: server
+|_  least strength: A
+| ssl-cert: Subject: commonName=localhost
+| Issuer: commonName=localhost
+| Public Key type: rsa
+| Public Key bits: 2048
+| Signature Algorithm: sha256WithRSAEncryption
+| Not valid before: 2026-10-12T14:59:26
+| Not valid after:  2027-10-12T14:59:26
+| MD5:     445a 3d73 c5bc e128 750d 340d 6924 3704
+| SHA-1:   1ea9 d6b8 0c41 22db 0d17 5c65 0d86 e870 e0e6 bf8d
+|_SHA-256: ab82 6031 9836 e3f4 81c2 e437 ad52 fc9b 9249 0b59 7d54 9b10 07f8 27c6 1f77 878c
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+# Nmap done at Mon Oct 12 21:05:23 2026 -- 1 IP address (1 host up) scanned in 12.49 seconds
