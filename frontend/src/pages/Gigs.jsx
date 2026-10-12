@@ -8,8 +8,8 @@ export default function Gigs() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [bookingGigId, setBookingGigId] = useState(null);
-  const [bookedGigIds, setBookedGigIds] = useState([]);
   const [bookingError, setBookingError] = useState("");
+  const [bookingSuccess, setBookingSuccess] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -39,10 +39,13 @@ export default function Gigs() {
 
   async function handleBook(gig) {
     setBookingError("");
+    setBookingSuccess("");
     setBookingGigId(gig.id);
     try {
       await apiClient.post("/bookings", { gigId: gig.id });
-      setBookedGigIds((prev) => [...prev, gig.id]);
+      setBookingSuccess(
+        `Booked "${gig.title}". View it in My Bookings.`
+      );
     } catch (err) {
       setBookingError(
         err.response?.data?.message || "Could not book this gig."
@@ -59,6 +62,7 @@ export default function Gigs() {
     <div className="page">
       <h1>Browse Gigs</h1>
       {bookingError && <p className="form-error">{bookingError}</p>}
+      {bookingSuccess && <p className="form-success">{bookingSuccess}</p>}
       {gigs.length === 0 ? (
         <p>No gigs available right now.</p>
       ) : (
@@ -75,15 +79,9 @@ export default function Gigs() {
                 <div className="gig-actions">
                   <button
                     onClick={() => handleBook(gig)}
-                    disabled={
-                      bookingGigId === gig.id || bookedGigIds.includes(gig.id)
-                    }
+                    disabled={bookingGigId === gig.id}
                   >
-                    {bookedGigIds.includes(gig.id)
-                      ? "Booked"
-                      : bookingGigId === gig.id
-                      ? "Booking..."
-                      : "Book"}
+                    {bookingGigId === gig.id ? "Booking..." : "Book"}
                   </button>
                 </div>
               )}

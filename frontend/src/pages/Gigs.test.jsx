@@ -63,7 +63,7 @@ describe("Gigs page", () => {
     expect(await screen.findByText(/could not load gigs/i)).toBeInTheDocument();
   });
 
-  it("lets a client book a gig", async () => {
+  it("lets a client book a gig and shows a success message", async () => {
     apiClient.get.mockResolvedValue({
       data: {
         gigs: [
@@ -81,14 +81,17 @@ describe("Gigs page", () => {
     const user = userEvent.setup();
     render(<Gigs />);
 
-    const bookButton = await screen.findByRole("button", { name: /book/i });
+    const bookButton = await screen.findByRole("button", { name: /^book$/i });
     await user.click(bookButton);
 
     expect(apiClient.post).toHaveBeenCalledWith("/bookings", { gigId: "1" });
-    expect(await screen.findByRole("button", { name: /booked/i })).toBeDisabled();
+    expect(
+      await screen.findByText(/booked "logo design"/i)
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^book$/i })).not.toBeDisabled();
   });
 
-  it("shows an error when booking fails", async () => {
+  it("shows the server's message when booking a gig twice", async () => {
     apiClient.get.mockResolvedValue({
       data: {
         gigs: [
@@ -103,15 +106,17 @@ describe("Gigs page", () => {
       },
     });
     apiClient.post.mockRejectedValue({
-      response: { data: { message: "Gig not found" } },
+      response: { data: { message: "You already have an active booking for this gig." } },
     });
     const user = userEvent.setup();
     render(<Gigs />);
 
-    const bookButton = await screen.findByRole("button", { name: /book/i });
+    const bookButton = await screen.findByRole("button", { name: /^book$/i });
     await user.click(bookButton);
 
-    expect(await screen.findByText("Gig not found")).toBeInTheDocument();
+    expect(
+      await screen.findByText(/already have an active booking/i)
+    ).toBeInTheDocument();
   });
 
   it("does not show a Book button for freelancers", async () => {

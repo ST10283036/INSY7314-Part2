@@ -36,4 +36,14 @@ router.get(
     bookingController.getMyBooking
 );
 
+router.patch(
+    "/:id/cancel",
+    authenticateToken,
+    requireRole("client", "freelancer"),
+    bookingLimiter,
+    param("id").isMongoId().withMessage("Invalid booking id."),
+    handleValidationErrors,
+    bookingController.cancelBooking
+);
+
 module.exports = router;

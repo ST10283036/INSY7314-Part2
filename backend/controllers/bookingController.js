@@ -24,6 +24,18 @@ async function createBooking(req, res) {
             return res.status(404).json({ message: "Gig not found" });
         }
 
+        const existingActiveBooking = await Booking.findOne({
+            gig: gig._id,
+            client: req.user.id,
+            status: "confirmed",
+        });
+
+        if (existingActiveBooking) {
+            return res.status(409).json({
+                message: "You already have an active booking for this gig.",
+            });
+        }
+
         const booking = await Booking.create({
             gig: gig._id,
             client: req.user.id,
@@ -107,4 +119,34 @@ async function getMyBooking(req, res, next) {
     }
 }
 
-module.exports = { createBooking, listMyBookings, getMyBooking };
+async function cancelBooking(req, res, next) {
+    const participant = req.user.role === "freelancer"
+        ? { freelancer: req.user.id }
+        : { client: req.user.id };
+
+    try {
+        const booking = await Booking.findOne({ _id: req.params.id, ...participant });
+
+        if (!booking) {
+            return res.status(404).json({ message: "Booking not found." });
+        }
+
+        if (booking.status === "cancelled") {
+            return res.status(409).json({ message: "Booking is already cancelled." });
+        }
+
+        booking.status = "cancelled";
+        await booking.save();
+
+        await Transaction.deleteOne({ booking: booking._id });
+
+        return res.status(200).json({
+            message: "Booking cancelled.",
+            booking: formatBooking(booking),
+        });
+    } catch (error) {
+        return next(error);
+    }
+}
+
+module.exports = { createBooking, listMyBookings, getMyBooking, cancelBooking };

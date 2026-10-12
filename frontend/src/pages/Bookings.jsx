@@ -10,31 +10,22 @@ export default function Bookings() {
   const [expandedId, setExpandedId] = useState(null);
   const [detail, setDetail] = useState(null);
   const [detailError, setDetailError] = useState("");
+  const [cancellingId, setCancellingId] = useState(null);
+  const [cancelError, setCancelError] = useState("");
+
+  async function fetchBookings() {
+    try {
+      const response = await apiClient.get("/bookings/mine");
+      setBookings(response.data.bookings);
+    } catch {
+      setError("Could not load bookings. Please try again later.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
-    let cancelled = false;
-
-    async function fetchBookings() {
-      try {
-        const response = await apiClient.get("/bookings/mine");
-        if (!cancelled) {
-          setBookings(response.data.bookings);
-        }
-      } catch {
-        if (!cancelled) {
-          setError("Could not load bookings. Please try again later.");
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    }
-
     fetchBookings();
-    return () => {
-      cancelled = true;
-    };
   }, []);
 
   async function handleToggleDetail(booking) {
@@ -57,6 +48,28 @@ export default function Bookings() {
     }
   }
 
+  async function handleCancel(booking) {
+    if (!window.confirm(`Cancel the booking for "${booking.gig?.title ?? "this gig"}"?`)) {
+      return;
+    }
+    setCancelError("");
+    setCancellingId(booking.id);
+    try {
+      await apiClient.patch(`/bookings/${booking.id}/cancel`, {});
+      await fetchBookings();
+      if (expandedId === booking.id) {
+        setExpandedId(null);
+        setDetail(null);
+      }
+    } catch (err) {
+      setCancelError(
+        err.response?.data?.message || "Could not cancel this booking."
+      );
+    } finally {
+      setCancellingId(null);
+    }
+  }
+
   if (loading) return <div className="page">Loading bookings...</div>;
   if (error) return <div className="page form-error">{error}</div>;
 
@@ -68,6 +81,7 @@ export default function Bookings() {
           ? "Gigs clients have booked from you."
           : "Gigs you have booked."}
       </p>
+      {cancelError && <p className="form-error">{cancelError}</p>}
 
       {bookings.length === 0 ? (
         <p>No bookings yet.</p>
@@ -87,6 +101,15 @@ export default function Bookings() {
                 <button onClick={() => handleToggleDetail(booking)}>
                   {expandedId === booking.id ? "Hide details" : "View details"}
                 </button>
+                {booking.status === "confirmed" && (
+                  <button
+                    className="danger"
+                    onClick={() => handleCancel(booking)}
+                    disabled={cancellingId === booking.id}
+                  >
+                    {cancellingId === booking.id ? "Cancelling..." : "Cancel"}
+                  </button>
+                )}
               </div>
               {expandedId === booking.id && (
                 <div className="booking-detail">
