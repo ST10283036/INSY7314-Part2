@@ -14,6 +14,7 @@ const authenticateToken = require(
 );
 const connectDatabase = require("./config/db");
 const gigRoutes = require("./routes/gigRoutes");
+const cors = require("cors");
 
 const requiredSettings = [
     "JWT_SECRET",
@@ -56,6 +57,7 @@ if (!Number.isInteger(port) || port < 1 || port > 65535) {
 const app = express();
 
 app.disable("x-powered-by");
+app.use(cors({ origin: "http://localhost:5173", credentials: true }));
 app.use(express.json({ limit: "10kb", strict: true }));
 
 app.get("/api/health", (req, res) => {
