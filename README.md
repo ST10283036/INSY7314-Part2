@@ -1,31 +1,5 @@
-# HustleHub+ - Part 2: Secure Stack
-
-The backend now uses MongoDB for users, gigs, bookings and transaction records. It includes
-freelancer income tracking, role and ownership enforcement, hardened JWT authentication,
-input sanitisation, request limits and Helmet/CSP. The group's React registration, login
-and gig pages are integrated with the secure API. Booking and financial UI completion
-remains a group task.
-
-See [Part 2 security implementation and evidence](security/README.md) for the permission
-table, security rationale, local setup, Postman/Newman collection, automated checks and
-OWASP ZAP reports. The historical Part 1 demonstration link below is not a Part 2 demo.
-
-## Additional Part 2 endpoints
-
-| Method | Endpoint | Permission |
-| --- | --- | --- |
-| GET | `/api/gigs` | Authenticated users; available listings |
-| GET | `/api/gigs/mine` | Freelancer; own listings |
-| GET | `/api/gigs/:id` | Available listing or its owner |
-| POST | `/api/gigs` | Freelancer |
-| PUT/DELETE | `/api/gigs/:id` | Freelancer owner |
-| POST | `/api/bookings` | Client |
-| GET | `/api/bookings/mine` | Associated client/freelancer |
-| GET | `/api/bookings/:id` | Associated client/freelancer; includes transaction |
-| GET | `/api/income` | Freelancer; own income |
-| GET | `/api/admin/summary` | Administrator only |
-
-The sections below retain the foundation's background and setup information.
+# insy7314-2026-g3-insy7314-2026-hustlehub-plus-part1-st10283036
+# HustleHub+ — Part 1: Secure Backend Foundations
 
 ## 1. System Overview
 
@@ -50,9 +24,8 @@ end-to-end token verification.
 | **Freelancer** | Creates gig listings, manages bookings, tracks income |
 | **Admin** | Platform oversight (Part 2/3) |
 
-Public registration defaults to client and permits client or freelancer. Administrator
-accounts are provisioned locally through a controlled process. Part 2 role checks are
-enforced by the API and do not depend on frontend buttons.
+Every registered user is currently assigned the `client` role by default. Role-based access
+control across all three roles is expanded in Part 2.
 
 ## 3. Architecture
 
@@ -62,9 +35,10 @@ implemented now versus planned for later parts.
 
 The system follows the MERN stack:
 
-- **M**ongoDB — stores Part 2 users, gigs, bookings and transactions
+- **M**ongoDB — planned for Part 2 (Part 1 uses an in-memory array, since persistent storage
+  isn't required until the system needs to survive restarts and support the full data model)
 - **E**xpress — REST API framework
-- **R**eact — Part 2 registration, login and gig pages
+- **R**eact — planned for Part 2
 - **N**ode.js — runtime
 
 ### Backend structure
@@ -177,9 +151,8 @@ node server.js
 Server runs at: `https://localhost:5000`
 
 > Note: since the certificate is self-signed (not issued by a trusted authority), browsers and
-> tools like Postman will flag it as untrusted by default. Import the public
-> `backend/certs/localhost-cert.pem` into Postman's CA Certificates setting and keep SSL
-> verification enabled. Never import or share the private key.
+> tools like Postman will flag it as untrusted by default. For local testing, disable SSL
+> certificate verification in Postman's settings, or accept the browser's security warning.
 
 ## 7. Testing
 
@@ -205,8 +178,8 @@ in this repository, covering:
 Screenshots of every request/response pair are included in this repository as evidence.
 
 **To run:** Import the collection into Postman, ensure `baseUrl` is set to
-`https://localhost:5000`, import the local public CA certificate in Postman, start the server,
-then run each request — or use the
+`https://localhost:5000`, disable SSL certificate verification in Postman settings (required
+for the self-signed local certificate), start the server, then run each request — or use the
 Collection Runner to execute all of them in sequence.
 
 ## 8. Demonstration Video
@@ -215,14 +188,13 @@ https://youtu.be/oq_LOhNFD1E — shows the API running, successful registration,
 token generation, and a protected route request succeeding with a valid token and being
 rejected without one.
 
-## 9. Current Limitations
+## 9. Known Limitations (Part 1)
 
-- The group must complete the remaining booking and financial frontend flow. Registration,
-  login, gig creation, sanitisation and role rejection were checked in Chrome under CSP.
-- Rate counters use a single-process memory store and reset on restart. Multiple API
-  instances would require a shared rate-limit store.
-- Development-tool dependency advisories and bounded ZAP coverage are documented in
-  the security evidence; they must not be represented as a clean exhaustive assessment.
+- User data is stored in-memory and will be lost on server restart — a database (MongoDB) is
+  planned for Part 2.
+- Only the `client` role currently exists in practice; full role-based access control across
+  client/freelancer/admin is expanded in Part 2.
+- Rate limiting and security headers (Helmet/CSP) are not yet implemented — planned for Part 2.
 - The TLS certificate is self-signed and intended for local development only; a
   production deployment would require a certificate from a trusted certificate authority.
 
