@@ -369,8 +369,7 @@ Full output: `screenshots/nmap-full-port-scan.txt` and `screenshots/nmap-tls-ser
 
 ## 10. Demonstration Video
 
-[PLACEHOLDER — replace with the real link once the video is recorded and uploaded unlisted]
-https://youtu.be/REPLACE_ME
+https://youtu.be/r842C0fItIs
 
 ## 11. Known Limitations (Part 2)
 
