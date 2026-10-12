@@ -13,17 +13,21 @@ const allowedOrigins = (process.env.FRONTEND_ORIGINS || "http://localhost:5173")
 app.disable("x-powered-by");
 // Direct local HTTPS has no trusted proxy. Do not trust arbitrary forwarded IP headers.
 app.use(securityHeaders);
-app.use(cors({
-    origin(origin, callback) {
-        if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+app.use(cors((req, callback) => {
+    const origin = req.get("Origin");
+    const ownOrigin = `${req.protocol}://${req.get("host")}`;
+    if (origin && origin !== ownOrigin && !allowedOrigins.includes(origin)) {
         const error = new Error("Origin not allowed.");
         error.code = "CORS_ORIGIN_DENIED";
         return callback(error);
-    },
+    }
+    return callback(null, {
+    origin: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     exposedHeaders: ["RateLimit", "RateLimit-Policy", "Retry-After"],
     credentials: false,
+    });
 }));
 app.use("/api", apiLimiter, (req, res, next) => {
     res.set("Cache-Control", "no-store");

@@ -7,7 +7,7 @@
 | RBAC enforcement | 15 | Database-backed roles; freelancer-only gig changes; owner-scoped updates/deletion; participant-scoped booking and transaction reads; own-income aggregation; admin-only summary. |
 | JWT, validation and sanitisation | 15 | HS256 signature, issuer, audience, subject, expiry and ID checks; current-user lookup; blocked role escalation; field allowlists; plain-text HTML sanitisation; controlled errors. |
 | Rate limiting | 10 | Login 10/15 minutes/IP; registration 10/hour/IP; booking 20/15 minutes/user; general API 300/15 minutes/IP. HTTP 429, meaningful messages and retry headers. |
-| Helmet and CSP | 10 | Restrictive resource policy, framing protection, MIME-sniffing protection, HSTS and referrer policy. The actual React HTML must receive the policy when the frontend is integrated. |
+| Helmet and CSP | 10 | Restrictive resource policy, framing protection, MIME-sniffing protection, HSTS and referrer policy on the API and built React HTML; real browser flows checked under CSP. |
 
 ## Permissions
 
@@ -37,7 +37,7 @@ The proposed administrator capability is read-only counts at `GET /api/admin/sum
 
 Prices are JSON numbers from 1 to 1000000 with at most two decimal places. Availability must be a JSON boolean. Current endpoints do not support query parameters; unsupported filters are rejected rather than used as database query objects.
 
-CORS permits the configured frontend origins and requests from tools that have no browser Origin header. CORS is a browser sharing policy, not a replacement for authentication. Trust proxy remains disabled for direct local HTTPS so forwarded IP headers cannot be used as client identity.
+CORS permits the configured frontend origins, the application's own origin and requests from tools that have no browser Origin header. CORS is a browser sharing policy, not a replacement for authentication. Trust proxy remains disabled for direct local HTTPS so forwarded IP headers cannot be used as client identity.
 
 ## Setup and repeatable checks
 
@@ -52,6 +52,15 @@ npm.cmd run security:audit
 ```
 
 `npm.cmd run start:local` starts a real local MongoDB process on port 27018 and the HTTPS API on port 5000. The local database persists in `%LOCALAPPDATA%/HustleHub-Part2/mongo`, outside the OneDrive project. A random signing secret is held in process memory; restarting invalidates earlier tokens. For the group's configured database, use the ignored `.env` and `npm.cmd start` instead.
+
+Build the integrated frontend from `frontend` using `npm.cmd run build`. Local startup
+then serves its HTML, CSS and JavaScript at `https://localhost:5000` under Helmet/CSP.
+Production browser requests use relative `/api` URLs; Vite development still uses the
+configured localhost API. `npm.cmd run test:browser-security` checks real registration,
+login, sanitised gig creation and forged browser-role rejection in isolated Chrome.
+`npm.cmd run test:zap:frontend` sends those real browser flows through scoped ZAP passive
+scanning. Chrome's local test context accepts the self-signed certificate; Newman separately
+verifies HTTPS with the actual public CA.
 
 Do not copy passwords, tokens, `.env`, private keys or raw scan sessions into Git. `setup:local` creates an ignored localhost certificate without overwriting an existing complete pair. Import its public certificate into Postman's CA certificate settings; do not import the private key.
 
@@ -96,7 +105,18 @@ runner; do not run its registration setup against already prepared demo accounts
 
 Newman brings upstream development-tool advisories. Review the audit file; do not claim a clean audit for the entire toolchain merely because production dependencies have no advisories. Run only the group's trusted collections in isolated local test environments. Forced dependency downgrades were not applied.
 
-The repository currently has no React frontend. Role 3 must integrate its build, verify the normal user flow under CSP and scan the frontend as well. `FRONTEND_DIST_PATH` can point to the completed build so Express applies Helmet/CSP to the HTML. A CSP on a separately served JSON API does not protect the frontend document. Prefer CSS classes and bundled assets rather than inline scripts/styles or broad CSP exemptions.
+The group's React auth and gig pages are integrated and the tested browser flows work
+under the actual HTML CSP. The group must finish its remaining booking/financial UI.
+Any new pages or resources must be rechecked under CSP. `FRONTEND_DIST_PATH` points to
+the completed build in configured deployments. A CSP on a separately served JSON API
+does not protect the frontend document. Prefer CSS classes and bundled assets rather
+than inline scripts/styles or broad CSP exemptions.
+
+The existing frontend keeps its token in localStorage. CSP and sanitisation reduce script
+injection risk, but a compromised same-origin script could still read that token. Backend
+permissions never trust the browser's stored role. A memory-only token or an agreed cookie
+session design can reduce storage exposure; this would require a coordinated frontend
+authentication change rather than silently changing the group's login persistence.
 
 These checks support the highest rubric bands, but lecturer-specific ZAP slides and evidence requirements must be checked before final submission. This document does not claim a complete whole-group Part 2 submission.
 

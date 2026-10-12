@@ -27,6 +27,9 @@ the whole system is vulnerability-free.
 | --- | --- |
 | Authentication Request Identified | Expected identification of the login endpoint; not a reported vulnerability. |
 | Re-examine Cache-control Directives | API responses intentionally set `Cache-Control: no-store`. The advice is retained for review rather than suppressed. |
+| Modern Web Application | Expected detection of the React module entrypoint; informational only. |
+| Session Management Response Identified | Expected identification of a JWT-bearing login response; the token is redacted in public reports. |
+| Suspicious Comments | Reviewed low-confidence match: ZAP interpreted the `//` inside React's W3C SVG namespace URL as a comment and matched the DOM element name `select`. This is not a SQL query or a credential. Retained as a documented false positive. |
 
 Each active phase was limited to two minutes with a one-minute per-rule cap, one thread
 and a three-second delay. Some rules may not finish their full parameter set. Rate limiting
@@ -44,8 +47,9 @@ upstream fixes. A forced downgrade was not used to conceal or bypass the finding
 
 ## Remaining group checks
 
-- The React frontend is not present in this repository yet. Apply and test CSP on the actual
-  HTML, verify frontend-to-API requests and include the frontend in security testing.
+- React auth/gig pages are integrated and checked in Chrome under CSP. Finish the remaining
+  booking/financial UI and recheck any added pages. Browser security checks and scoped
+  frontend ZAP traffic supplement the separately recorded API active scans.
 - Verify any lecturer-specific ZAP evidence requirements against the slides.
 - Confirm the proposed read-only administrator summary and marketplace gig visibility
   policy if the lecturer requires different administrative capabilities.

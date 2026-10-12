@@ -22,6 +22,10 @@ async function start() {
     process.env.TLS_KEY_PATH = "certs/localhost-key.pem";
     process.env.TLS_CERT_PATH = "certs/localhost-cert.pem";
     process.env.PORT = process.env.PORT || "5000";
+    if (!process.env.FRONTEND_DIST_PATH &&
+        fs.existsSync(path.join(__dirname, "../../frontend/dist/index.html"))) {
+        process.env.FRONTEND_DIST_PATH = "../frontend/dist";
+    }
     console.log("Starting the local development database and HTTPS API.");
     const stop = async () => { await database.stop({ doCleanup: false }); process.exit(0); };
     process.on("SIGINT", stop);

@@ -98,6 +98,10 @@ test("CORS permits the agreed frontend and denies unapproved origins", async () 
         .set("Access-Control-Request-Headers", "authorization,content-type");
     assert.equal(allowed.status, 204);
     assert.equal(allowed.headers["access-control-allow-origin"], "http://localhost:5173");
+    const sameOrigin = await request.post("/api/auth/login")
+        .set("Origin", `http://127.0.0.1:${server.address().port}`)
+        .send({ username: "unmatched_user", password: "WrongDemo1!" });
+    assert.equal(sameOrigin.status, 401);
     const denied = await request.get("/api/health").set("Origin", "https://untrusted.example");
     assert.equal(denied.status, 403);
     assert.deepEqual(denied.body, { message: "Request origin is not allowed." });

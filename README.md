@@ -2,8 +2,9 @@
 
 The backend now uses MongoDB for users, gigs, bookings and transaction records. It includes
 freelancer income tracking, role and ownership enforcement, hardened JWT authentication,
-input sanitisation, request limits and Helmet/CSP. The React frontend remains a separate
-group integration task.
+input sanitisation, request limits and Helmet/CSP. The group's React registration, login
+and gig pages are integrated with the secure API. Booking and financial UI completion
+remains a group task.
 
 See [Part 2 security implementation and evidence](security/README.md) for the permission
 table, security rationale, local setup, Postman/Newman collection, automated checks and
@@ -63,7 +64,7 @@ The system follows the MERN stack:
 
 - **M**ongoDB — stores Part 2 users, gigs, bookings and transactions
 - **E**xpress — REST API framework
-- **R**eact — planned for Part 2
+- **R**eact — Part 2 registration, login and gig pages
 - **N**ode.js — runtime
 
 ### Backend structure
@@ -216,7 +217,8 @@ rejected without one.
 
 ## 9. Current Limitations
 
-- The React frontend and its browser/CSP checks must be integrated by the group.
+- The group must complete the remaining booking and financial frontend flow. Registration,
+  login, gig creation, sanitisation and role rejection were checked in Chrome under CSP.
 - Rate counters use a single-process memory store and reset on restart. Multiple API
   instances would require a shared rate-limit store.
 - Development-tool dependency advisories and bounded ZAP coverage are documented in
