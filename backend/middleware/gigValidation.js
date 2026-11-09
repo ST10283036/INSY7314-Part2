@@ -125,4 +125,4 @@ const updateGigValidation = [
     handleValidationErrors,
 ];
 
-module.exports = { createGigValidation, gigIdValidation, updateGigValidation };
+module.exports = { createGigValidation, gigIdValidation, updateGigValidation, allowOnlyFields, handleValidationErrors, };
