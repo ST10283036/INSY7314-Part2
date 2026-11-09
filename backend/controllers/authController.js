@@ -99,7 +99,7 @@ async function login(req, res) {
     try {
         const user = await User.findOne({
             username: username.toLowerCase()
-        }).select("+passwordHash +failedLoginAttempts +lockUntil");
+        }).select("+passwordHash +failedLoginAttempts +lockUntil +tokenVersion");
 
         if (!user || user.isActive === false) {
             return res.status(401).json({
@@ -143,6 +143,7 @@ async function login(req, res) {
             {
                 id: user.id,
                 role: user.role,
+                tv: user.tokenVersion || 0,
             },
             process.env.JWT_SECRET,
             {
@@ -174,4 +175,25 @@ async function login(req, res) {
     }
 }  
   
-module.exports = { register, login };
+// Revokes every token issued to this account so far (a stolen token stops
+// working as soon as its owner logs out). New logins get the new version.
+async function logout(req, res) {
+    try {
+        await User.updateOne(
+            { _id: req.user.id },
+            { $inc: { tokenVersion: 1 } }
+        );
+
+        return res.status(200).json({
+            message: "Logged out. All sessions for this account have been signed out.",
+        });
+    } catch {
+        console.error("Logout failed unexpectedly.");
+
+        return res.status(500).json({
+            message: "An unexpected error occurred.",
+        });
+    }
+}
+
+module.exports = { register, login, logout };

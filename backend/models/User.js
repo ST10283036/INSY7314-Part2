@@ -23,6 +23,15 @@ const userSchema = new mongoose.Schema(
             type: Boolean,
             default: true,
         },
+        // Incremented on logout. Every JWT carries the version it was issued
+        // under, so bumping it revokes all tokens issued before (see
+        // authenticateToken).
+        tokenVersion: {
+            type: Number,
+            default: 0,
+            min: 0,
+            select: false,
+        },
         // Brute-force protection state (see config/lockout.js). Hidden from
         // normal queries; only the login controller reads them explicitly.
         failedLoginAttempts: {
