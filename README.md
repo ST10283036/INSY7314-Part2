@@ -28,19 +28,20 @@ transaction, and freelancers can see their earnings and an estimated income-tax 
 
 ## Part 3 delivery status
 
-This branch contains Role 3's work on top of Role 1's merged `develop` changes.
-It must be reviewed and integrated into `develop` before the group promotes the final version to `main`.
+This version combines the tax dashboard, additional security controls, container integration,
+automated checks and audit logging. Integration updates are reviewed through pull requests
+into `develop` before the group promotes the final version to `main`.
 
 | Rubric area | Implementation / evidence | Integration status |
 | --- | --- | --- |
 | Tax and income dashboard (20) | Server calculation, summary cards, monthly chart, bracket table, assumptions; [screenshots](security/evidence/part3/) | Implemented and tested |
-| CI/CD (20) | [Frontend checks](.github/workflows/frontend-checks.yml) install, lint, test, build and run the frontend container | Role 2 must integrate backend/security checks and the full stack |
+| CI/CD (20) | Backend and frontend checks plus [full-stack integration](.github/workflows/full-stack.yml) | Both containers and database started; HTTPS booking flow and audit events checked |
 | Static analysis (10) | ESLint, zero-warning gate, [result summary](security/evidence/part3-frontend-checks.json) | Frontend complete; backend analysis is Role 2's handover |
-| Docker (10) | [Frontend Dockerfile](frontend/Dockerfile), HTTPS Nginx, verified upstream TLS | Full Compose stack and both-container CI evidence pending Role 2 integration |
-| Logging (10) | Required events and evidence described below | Awaiting Role 2 implementation and cloud logging evidence |
+| Docker (10) | Backend and frontend Dockerfiles, HTTPS Nginx, verified upstream TLS | Full [Compose stack](docker-compose.yml); CI evidence artifact records health and integration results |
+| Logging (10) | Redacted JSON audit events, tests and bounded Docker log rotation | External cloud monitoring platform and ingestion evidence still outstanding |
 | Additional security (15) | Account lockout and token revocation; backend and Newman tests | Implemented by Role 1 |
 | Security review (10) | Threat/control mapping below and [detailed review](security/SECURITY_REVIEW.md) | Included |
-| README (5) | Setup, features, security, testing and handover | Final pipeline/logging details and Part 3 video link must be added |
+| README (5) | Setup, tax explanation, security review, test and container evidence, logging details and demonstration link | Included; external cloud monitoring remains an explicit limitation |
 
 The role split is a working agreement; the marks above are assessed for the combined project.
 The final submission is not complete until the pending integration and evidence items are resolved.
@@ -285,9 +286,18 @@ TLS files are mounted read-only at `/etc/nginx/certs`. The upstream certificate 
 against the mounted certificate with hostname `localhost`; verification is not disabled.
 Nginx applies CSP and other security headers to the HTML as well as retaining API headers.
 
-[Role 3 handover](docs/ROLE3_HANDOVER.md) includes the exact Compose service block for Role 2.
-The backend and frontend must share a Docker network, the backend service must be named
-`backend`, and both services must use the agreed certificate pair.
+The [Compose configuration](docker-compose.yml) runs MongoDB, backend and frontend together.
+Only the frontend is published, on loopback port 8443; MongoDB and the backend stay on the
+private Compose network. Health checks gate startup. Both application services mount the
+same local TLS certificate pair read-only. Backend HTTPS health checks verify that certificate.
+
+To run locally, install Docker with Compose, run the backend local setup to create ignored
+TLS files, and configure the ignored `backend/.env` with genuine JWT settings as described
+above. Then run `docker compose up --build --detach --wait` from the repository root and
+open **https://localhost:8443**. Use `docker compose ps` to check health and
+`docker compose logs backend` to inspect redacted audit events. Stop with
+`docker compose down` (without `--volumes`, so the local database is retained).
+Do not use this command to replace an existing recording server mid-recording.
 
 The [Frontend checks workflow](.github/workflows/frontend-checks.yml) runs on pushes to
 `main`, `develop` and this feature branch, and on pull requests into `main` or `develop`.
@@ -295,32 +305,59 @@ It installs locked dependencies, runs verification, builds the image and starts 
 container to check HTTPS, a React deep link and CSP. Reports are uploaded as workflow artifacts.
 A failed check fails the job; cleanup/log collection does not mask the check result.
 
-That smoke test covers the frontend container only. Role 2 must add the backend/security
-checks and a full Compose smoke test with both application containers running to satisfy the
-combined-stack requirement. Replace this integration note with the final workflow/run links
-once that work is merged and verified.
+The separate [full-stack workflow](.github/workflows/full-stack.yml) builds and starts all
+three Compose services, waits for health, and tests real requests through Nginx to the API:
+registration, failed/successful login, gig creation, booking, transaction lookup, income,
+role denial, logout and rejection of the revoked token. No certificate verification is disabled.
+It also verifies that the expected audit events were emitted. Failed checks fail the job.
+The `full-stack-evidence` artifact contains container status, request-check results and
+allowlisted audit records (30-day retention). CI uses random disposable credentials and its
+own database volume, which it removes after the run. Download evidence before artifact expiry.
+
+Verified integration revision **70fb55f**, 9 November 2026:
+
+- [Full-stack CI passed](https://github.com/ST10283036/INSY7314-Part2/actions/runs/42702285857):
+  [16 HTTPS checks](security/evidence/part3-integration/compose-checks.json),
+  [all three containers running and healthy](security/evidence/part3-integration/containers.json),
+  and [redacted audit events](security/evidence/part3-integration/audit-events.json).
+- [Backend CI passed](https://github.com/ST10283036/INSY7314-Part2/actions/runs/42702285759):
+  49 backend tests, 44 Newman requests / 65 assertions, and backend image build.
+- [Frontend CI passed](https://github.com/ST10283036/INSY7314-Part2/actions/runs/42702285839):
+  lint, 55 tests, production build and frontend HTTPS container check.
+
+The linked snapshot files were downloaded from the successful full-stack CI artifact;
+future runs publish their own results rather than reusing these snapshots.
 
 ## Logging and monitoring
 
-Role 2 owns the logger and cloud integration. The Role 1 base currently contains controlled
-console error messages, not the completed Part 3 monitoring system. Do not submit this section
-as evidence that cloud logging already works.
+The [audit middleware](backend/middleware/auditLog.js) writes one JSON line per selected
+response outcome to stdout: successful/failed login, login throttling or account lockout,
+registration, logout, rejected authentication, denied access, booking/transaction creation,
+booking cancellation and HTTP 5xx errors. Booking and transaction success events are emitted
+only after a successful response, not when persistence failed or rolled back.
 
-The final logger should record login success/failure, account lockout, logout/revocation,
-rejected tokens, booking creation/cancellation, transaction creation and unexpected errors.
-For each event, include a timestamp, event name, outcome and a correlation identifier as
-appropriate. This helps detect repeated login failures and investigate missing or failed
-booking/transaction operations.
+Each record contains timestamp, fixed event name, service, generated request correlation ID,
+HTTP status and elapsed time. The same ID is returned in `X-Request-Id`. Neither client-supplied
+IDs nor raw paths are logged. Passwords, tokens, headers, account names, IP addresses,
+transaction amounts, connection strings and request bodies are excluded. Unit tests check
+the field allowlist, response outcomes and logging-sink failure isolation. Generic existing
+console messages remain for operational startup errors; they do not contain exception details.
 
-Exclude passwords, JWTs, Authorization headers, connection strings, private keys and raw
-request bodies. Limit identifiers to what is necessary for investigation.
-The final handover must name the logging platform, explain access/retention, link redacted
-example events and demonstrate their arrival in that platform. Cloud logging evidence is
-needed for the rubric's highest logging band; console output alone is insufficient.
+Docker rotates application logs at 10 MB with three retained files per service. Nginx access
+logging is disabled to avoid separately collecting raw request URLs. Host/Docker access must
+be restricted to maintainers. Correlation IDs connect events from the same request, not a
+cross-session user profile. IP rate limits remain conservatively shared behind the proxy.
+
+**Cloud monitoring is not yet configured.** The GitHub artifact is CI evidence, not a hosted
+monitoring service. To complete cloud evidence, the group must supply an authorised logging
+platform and configure its collector to ingest the backend stdout JSON using a secret stored
+outside Git. Confirm ingestion with test events, document retention/access, and attach redacted
+platform evidence. Do not expose the Docker socket to a third-party collector without reviewing
+its permissions. No account, paid service or external log transmission is created by this patch.
 
 ## Demonstration and submission
 
-**Part 3 video: recording/upload pending.** Add the final accessible video link here before submission.
+**[Watch the Part 3 demonstration](https://youtu.be/qfx2NbQIHwo).**
 The [Part 2 video](https://youtu.be/r842C0fItIs) is retained as previous evidence and is not
 the final Part 3 demonstration.
 
@@ -332,10 +369,10 @@ restarting clears only this recording database and changes its password. Do not 
 the credentials file in the video. This helper runs the actual app locally, not Docker;
 container and cloud logging evidence must come from the final integrated stack.
 
-The final recording must show authentication, gig creation, booking and transaction recording,
-then the income/tax dashboard. Include concise evidence of tests/static analysis, the completed
-pipeline, running containers, logging and the two additional security features.
-Use dedicated recording accounts; never deliberately lock or revoke shared group accounts.
+The demonstration accompanies the application and the evidence linked in this README.
+Automated test results, container health and redacted logging records are available in the
+sections above. Use dedicated accounts for any further recordings; never deliberately lock
+or revoke shared group accounts.
 
 Before the final push:
 
@@ -343,7 +380,7 @@ Before the final push:
 - Rerun checks on the combined code, not only each member's separate branch.
 - Confirm backend/frontend containers run together in CI and locally as documented.
 - Add cloud logging evidence and final pipeline/static-analysis results.
-- Upload the Part 3 video; check its link from a browser where the owner is not signed in.
+- Check the linked Part 3 video from a browser where the owner is not signed in.
 - Replace pending README items with actual results and evidence links.
 - Review the final diff for secrets, then merge reviewed `develop` into `main`.
 

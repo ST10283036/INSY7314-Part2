@@ -1,0 +1,87 @@
+{
+  "completedAt": "2026-11-09T21:26:00.541Z",
+  "passed": 16,
+  "scope": "HTTPS frontend proxy to backend and MongoDB; disposable CI accounts only",
+  "checks": [
+    {
+      "method": "GET",
+      "endpoint": "/income",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/health",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/protected",
+      "status": 401
+    },
+    {
+      "method": "POST",
+      "endpoint": "/api/auth/register",
+      "status": 201
+    },
+    {
+      "method": "POST",
+      "endpoint": "/api/auth/login",
+      "status": 401
+    },
+    {
+      "method": "POST",
+      "endpoint": "/api/auth/login",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/api/auth/register",
+      "status": 201
+    },
+    {
+      "method": "POST",
+      "endpoint": "/api/auth/login",
+      "status": 401
+    },
+    {
+      "method": "POST",
+      "endpoint": "/api/auth/login",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "endpoint": "/api/gigs",
+      "status": 201
+    },
+    {
+      "method": "POST",
+      "endpoint": "/api/bookings",
+      "status": 201
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/bookings/:id",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/income",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/income",
+      "status": 403
+    },
+    {
+      "method": "POST",
+      "endpoint": "/api/auth/logout",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/protected",
+      "status": 401
+    }
+  ]
+}

@@ -1,0 +1,103 @@
+{
+  "capturedAt": "2026-11-09T21:26:00.628Z",
+  "source": "Disposable Docker Compose integration run",
+  "records": [
+    {
+      "timestamp": "2026-11-09T21:25:59.381Z",
+      "service": "hustlehub-backend",
+      "event": "authentication_rejected",
+      "requestId": "f1ac93e7-ae00-416a-b313-d0aaaafcf342",
+      "status": 401,
+      "durationMs": 1
+    },
+    {
+      "timestamp": "2026-11-09T21:25:59.576Z",
+      "service": "hustlehub-backend",
+      "event": "registration_succeeded",
+      "requestId": "4465920c-7243-440e-aea3-2fb37155b9e3",
+      "status": 201,
+      "durationMs": 192
+    },
+    {
+      "timestamp": "2026-11-09T21:25:59.762Z",
+      "service": "hustlehub-backend",
+      "event": "login_failed",
+      "requestId": "8e188880-a056-4157-87c4-e84ed70833a7",
+      "status": 401,
+      "durationMs": 183
+    },
+    {
+      "timestamp": "2026-11-09T21:25:59.947Z",
+      "service": "hustlehub-backend",
+      "event": "login_succeeded",
+      "requestId": "29ad71aa-d927-4ac5-93bd-f67362b2b10c",
+      "status": 200,
+      "durationMs": 182
+    },
+    {
+      "timestamp": "2026-11-09T21:26:00.129Z",
+      "service": "hustlehub-backend",
+      "event": "registration_succeeded",
+      "requestId": "e63c5f26-5b0a-4d5b-b63f-ea220b49c751",
+      "status": 201,
+      "durationMs": 179
+    },
+    {
+      "timestamp": "2026-11-09T21:26:00.310Z",
+      "service": "hustlehub-backend",
+      "event": "login_failed",
+      "requestId": "fe2d15db-34a8-4bbe-baaf-afe9d7be919e",
+      "status": 401,
+      "durationMs": 178
+    },
+    {
+      "timestamp": "2026-11-09T21:26:00.491Z",
+      "service": "hustlehub-backend",
+      "event": "login_succeeded",
+      "requestId": "9e8da6aa-4ae4-41ac-8abb-2e471f753be8",
+      "status": 200,
+      "durationMs": 179
+    },
+    {
+      "timestamp": "2026-11-09T21:26:00.510Z",
+      "service": "hustlehub-backend",
+      "event": "booking_created",
+      "requestId": "7980dc43-ba84-4a7f-8247-0e0085bf34dd",
+      "status": 201,
+      "durationMs": 7
+    },
+    {
+      "timestamp": "2026-11-09T21:26:00.510Z",
+      "service": "hustlehub-backend",
+      "event": "transaction_created",
+      "requestId": "7980dc43-ba84-4a7f-8247-0e0085bf34dd",
+      "status": 201,
+      "durationMs": 7
+    },
+    {
+      "timestamp": "2026-11-09T21:26:00.531Z",
+      "service": "hustlehub-backend",
+      "event": "access_denied",
+      "requestId": "157d8be5-d41d-4240-97dc-e54d3a159ca8",
+      "status": 403,
+      "durationMs": 2
+    },
+    {
+      "timestamp": "2026-11-09T21:26:00.536Z",
+      "service": "hustlehub-backend",
+      "event": "logout_succeeded",
+      "requestId": "876a70f8-2535-4bed-b5f0-c65a1ee385aa",
+      "status": 200,
+      "durationMs": 3
+    },
+    {
+      "timestamp": "2026-11-09T21:26:00.541Z",
+      "service": "hustlehub-backend",
+      "event": "authentication_rejected",
+      "requestId": "34f17088-9729-45e3-a13c-bddc7ad1d337",
+      "status": 401,
+      "durationMs": 2
+    }
+  ],
+  "limitation": "CI artifact, not evidence of an external cloud monitoring platform."
+}
