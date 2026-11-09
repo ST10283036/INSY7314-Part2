@@ -28,8 +28,9 @@ transaction, and freelancers can see their earnings and an estimated income-tax 
 
 ## Part 3 delivery status
 
-This branch contains Role 3's work on top of Role 1's merged `develop` changes.
-It must be reviewed and integrated into `develop` before the group promotes the final version to `main`.
+This version combines the tax dashboard, additional security controls, container integration,
+automated checks and audit logging. Integration updates are reviewed through pull requests
+into `develop` before the group promotes the final version to `main`.
 
 | Rubric area | Implementation / evidence | Integration status |
 | --- | --- | --- |
@@ -40,7 +41,7 @@ It must be reviewed and integrated into `develop` before the group promotes the 
 | Logging (10) | Redacted JSON audit events, tests and bounded Docker log rotation | External cloud monitoring platform and ingestion evidence still outstanding |
 | Additional security (15) | Account lockout and token revocation; backend and Newman tests | Implemented by Role 1 |
 | Security review (10) | Threat/control mapping below and [detailed review](security/SECURITY_REVIEW.md) | Included |
-| README (5) | Setup, features, security, testing and handover | Final pipeline/logging details and Part 3 video link must be added |
+| README (5) | Setup, tax explanation, security review, test and container evidence, logging details and demonstration link | Included; external cloud monitoring remains an explicit limitation |
 
 The role split is a working agreement; the marks above are assessed for the combined project.
 The final submission is not complete until the pending integration and evidence items are resolved.
@@ -356,7 +357,7 @@ its permissions. No account, paid service or external log transmission is create
 
 ## Demonstration and submission
 
-**Part 3 video: recording/upload pending.** Add the final accessible video link here before submission.
+**[Watch the Part 3 demonstration](https://youtu.be/qfx2NbQIHwo).**
 The [Part 2 video](https://youtu.be/r842C0fItIs) is retained as previous evidence and is not
 the final Part 3 demonstration.
 
@@ -368,10 +369,10 @@ restarting clears only this recording database and changes its password. Do not 
 the credentials file in the video. This helper runs the actual app locally, not Docker;
 container and cloud logging evidence must come from the final integrated stack.
 
-The final recording must show authentication, gig creation, booking and transaction recording,
-then the income/tax dashboard. Include concise evidence of tests/static analysis, the completed
-pipeline, running containers, logging and the two additional security features.
-Use dedicated recording accounts; never deliberately lock or revoke shared group accounts.
+The demonstration accompanies the application and the evidence linked in this README.
+Automated test results, container health and redacted logging records are available in the
+sections above. Use dedicated accounts for any further recordings; never deliberately lock
+or revoke shared group accounts.
 
 Before the final push:
 
@@ -379,7 +380,7 @@ Before the final push:
 - Rerun checks on the combined code, not only each member's separate branch.
 - Confirm backend/frontend containers run together in CI and locally as documented.
 - Add cloud logging evidence and final pipeline/static-analysis results.
-- Upload the Part 3 video; check its link from a browser where the owner is not signed in.
+- Check the linked Part 3 video from a browser where the owner is not signed in.
 - Replace pending README items with actual results and evidence links.
 - Review the final diff for secrets, then merge reviewed `develop` into `main`.
 
