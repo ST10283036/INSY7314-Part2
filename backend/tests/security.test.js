@@ -491,3 +491,52 @@ test("after cancelling, the client can book the same gig again", async () => {
     assert.equal(rebooked.status, 201);
     assert.equal(rebooked.body.transaction.amount, 125.50);
 });
+
+// ---------------------------------------------------------------------------
+// Token revocation on logout (tokenVersion)
+// ---------------------------------------------------------------------------
+
+async function loginToken(name) {
+    const result = await attemptLogin(name, password);
+    assert.equal(result.status, 200);
+    return result.body.token;
+}
+
+test("logout revokes every token issued before it, and a new login works again", async () => {
+    await registerAccount("revoke_user");
+    const first = await loginToken("revoke_user");
+    const second = await loginToken("revoke_user");
+    const claims = jwt.decode(first);
+    assert.equal(claims.tv, 0);
+
+    const check = (token) => request.get("/api/protected").set("Authorization", `Bearer ${token}`);
+    assert.equal((await check(first)).status, 200, "token works before logout");
+
+    const loggedOut = await request.post("/api/auth/logout").set("Authorization", `Bearer ${first}`).send({});
+    assert.equal(loggedOut.status, 200);
+
+    assert.equal((await check(first)).status, 401, "the token used to log out is revoked");
+    assert.equal((await check(second)).status, 401, "other sessions of the same account are revoked too");
+
+    const fresh = await loginToken("revoke_user");
+    assert.equal(jwt.decode(fresh).tv, 1);
+    assert.equal((await check(fresh)).status, 200, "a fresh login after logout works");
+});
+
+test("logout requires authentication, rejects unexpected body fields and does not affect other accounts", async () => {
+    assert.equal((await request.post("/api/auth/logout").send({})).status, 401);
+    const extra = await request.post("/api/auth/logout").set("Authorization", bearer("client_b")).send({ role: "admin" });
+    assert.equal(extra.status, 400);
+
+    const stillValid = await request.get("/api/protected").set("Authorization", bearer("client_b"));
+    assert.equal(stillValid.status, 200, "a rejected logout must not revoke anything");
+});
+
+test("tokens with a forged or malformed tv claim are rejected", async () => {
+    const ok = await request.get("/api/protected").set("Authorization", `Bearer ${sign({ tv: 0 })}`);
+    assert.equal(ok.status, 200);
+    for (const tv of [1, 99, -1, 1.5, "0", null, {}]) {
+        const result = await request.get("/api/protected").set("Authorization", `Bearer ${sign({ tv })}`);
+        assert.equal(result.status, 401, `tv=${JSON.stringify(tv)}`);
+    }
+});
