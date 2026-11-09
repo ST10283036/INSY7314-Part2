@@ -180,3 +180,45 @@ body {
 .income-summary .gig-price {
   font-size: 1.75rem;
 }
+
+.income-page { max-width: 1100px; }
+.dashboard-heading { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+.dashboard-heading h1 { margin-bottom: 0.4rem; }
+.dashboard-muted { color: #50556a; line-height: 1.5; }
+.dashboard-button { background: #0f3460; color: white; border: 0; border-radius: 6px; padding: 0.75rem 1rem; cursor: pointer; font: inherit; }
+.tax-year { color: #0f3460; font-weight: 600; margin: 1.5rem 0; }
+.income-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+.income-card, .dashboard-panel { background: white; border: 1px solid #dde2ea; border-radius: 10px; padding: 1.25rem; }
+.income-card { border-top: 4px solid #0f3460; }
+.income-card h2 { font-size: 1rem; margin-top: 0; }
+.income-card > p:last-child { color: #50556a; font-size: 0.9rem; line-height: 1.45; }
+.income-value { font-size: clamp(1.3rem, 2.5vw, 1.85rem); font-weight: 700; color: #0f3460; margin: 0.75rem 0; overflow-wrap: anywhere; }
+.tax-card { border-top-color: #9a6300; }
+.net-card { border-top-color: #14735b; }
+.dashboard-panel { margin-top: 1.25rem; }
+.dashboard-panel h2 { font-size: 1.15rem; margin-top: 0; }
+.income-chart { display: block; width: 100%; height: auto; min-height: 160px; }
+.income-bar { fill: #0f6881; }
+.chart-axis { stroke: #71798a; }
+.chart-grid { stroke: #dde2ea; stroke-dasharray: 4; }
+.chart-label { fill: #50556a; font-size: 12px; }
+.income-page summary { cursor: pointer; color: #0f3460; font-weight: 600; padding: 0.75rem 0; }
+.income-page :focus-visible { outline: 3px solid #0f6881; outline-offset: 3px; }
+.table-scroll { overflow-x: auto; }
+.income-page table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.income-page caption { text-align: left; padding: 0.75rem 0; color: #50556a; }
+.income-page th, .income-page td { padding: 0.7rem; text-align: left; border-bottom: 1px solid #dde2ea; }
+.income-page thead { background: #f0f4f8; }
+.tax-calculation { display: flex; flex-wrap: wrap; gap: 2rem; }
+.tax-calculation dt { color: #50556a; }
+.tax-calculation dd { margin: 0.5rem 0; font-weight: 700; }
+.tax-assumptions { background: #f4f7fa; border-radius: 6px; padding: 1rem; margin-top: 1rem; font-size: 0.9rem; line-height: 1.6; }
+.tax-assumptions h3 { margin-top: 0; font-size: 1rem; }
+.tax-assumptions ul { margin-bottom: 0; padding-left: 1.2rem; }
+@media (max-width: 700px) {
+  .income-cards { grid-template-columns: 1fr; }
+  .dashboard-heading { align-items: flex-start; flex-direction: column; }
+  .navbar { flex-wrap: wrap; gap: 1rem; padding: 1rem; }
+  .navbar-links { flex-wrap: wrap; gap: 0.75rem; }
+  .income-page { padding: 0 1rem; }
+}

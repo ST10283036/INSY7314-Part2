@@ -24,7 +24,12 @@ export default function MyGigs() {
   }
 
   useEffect(() => {
-    fetchMyGigs();
+    let cancelled = false;
+    apiClient.get("/gigs/mine")
+      .then((response) => { if (!cancelled) setGigs(response.data.gigs); })
+      .catch(() => { if (!cancelled) setError("Could not load your gigs."); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, []);
 
   async function handleCreate(e) {

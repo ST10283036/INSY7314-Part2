@@ -1,0 +1,244 @@
+{
+  "completedAt": "2026-11-09T17:50:13.840Z",
+  "tools": {
+    "eslint": {
+      "exitCode": 0,
+      "files": 31,
+      "errors": 0,
+      "warnings": 0
+    },
+    "vitest": {
+      "exitCode": 0,
+      "total": 55,
+      "passed": 55,
+      "failed": 0,
+      "skipped": 0,
+      "cases": [
+        {
+          "name": "getErrorMessage prefers the first field-level validation message when present",
+          "status": "passed"
+        },
+        {
+          "name": "getErrorMessage falls back to the top-level message when there is no errors array",
+          "status": "passed"
+        },
+        {
+          "name": "getErrorMessage falls back to the top-level message when errors is an empty array",
+          "status": "passed"
+        },
+        {
+          "name": "getErrorMessage uses the provided fallback for a network error with no response",
+          "status": "passed"
+        },
+        {
+          "name": "getErrorMessage uses the provided fallback when the response has no message at all",
+          "status": "passed"
+        },
+        {
+          "name": "AdminSummary page shows a loading state initially",
+          "status": "passed"
+        },
+        {
+          "name": "AdminSummary page renders the platform totals once loaded",
+          "status": "passed"
+        },
+        {
+          "name": "AdminSummary page shows an error message when the request fails",
+          "status": "passed"
+        },
+        {
+          "name": "Bookings page shows a loading state initially",
+          "status": "passed"
+        },
+        {
+          "name": "Bookings page renders a list of bookings once loaded",
+          "status": "passed"
+        },
+        {
+          "name": "Bookings page shows a message when there are no bookings",
+          "status": "passed"
+        },
+        {
+          "name": "Bookings page shows an error message when the list request fails",
+          "status": "passed"
+        },
+        {
+          "name": "Bookings page loads and shows transaction details when expanded",
+          "status": "passed"
+        },
+        {
+          "name": "Bookings page shows a role-appropriate description for freelancers",
+          "status": "passed"
+        },
+        {
+          "name": "Bookings page shows a Cancel button only for confirmed bookings",
+          "status": "passed"
+        },
+        {
+          "name": "Bookings page cancels a booking after confirming, and refreshes the list",
+          "status": "passed"
+        },
+        {
+          "name": "Bookings page does not cancel when the confirmation dialog is declined",
+          "status": "passed"
+        },
+        {
+          "name": "Bookings page shows an error message when cancelling fails",
+          "status": "passed"
+        },
+        {
+          "name": "Bookings page shows the specific field message when cancelling fails validation",
+          "status": "passed"
+        },
+        {
+          "name": "Gigs page shows a loading state initially",
+          "status": "passed"
+        },
+        {
+          "name": "Gigs page renders a list of gigs once loaded",
+          "status": "passed"
+        },
+        {
+          "name": "Gigs page shows a message when there are no gigs",
+          "status": "passed"
+        },
+        {
+          "name": "Gigs page shows an error message when the request fails",
+          "status": "passed"
+        },
+        {
+          "name": "Gigs page lets a client book a gig and shows a success message",
+          "status": "passed"
+        },
+        {
+          "name": "Gigs page shows the server's message when booking a gig twice",
+          "status": "passed"
+        },
+        {
+          "name": "Gigs page shows the specific field message when booking fails validation",
+          "status": "passed"
+        },
+        {
+          "name": "Gigs page does not show a Book button for freelancers",
+          "status": "passed"
+        },
+        {
+          "name": "Income page shows a loading state initially",
+          "status": "passed"
+        },
+        {
+          "name": "Income page renders the income summary and recent transactions once loaded",
+          "status": "passed"
+        },
+        {
+          "name": "Income page uses singular wording for exactly one transaction",
+          "status": "passed"
+        },
+        {
+          "name": "Income page shows a message when there are no transactions",
+          "status": "passed"
+        },
+        {
+          "name": "Income page shows an error message when the request fails",
+          "status": "passed"
+        },
+        {
+          "name": "Part 3 income and tax dashboard keeps current tax-year income separate from all-time income and shows the server's estimate",
+          "status": "passed"
+        },
+        {
+          "name": "Part 3 income and tax dashboard shows all 12 months in tax-year order with an accessible chart and exact amounts",
+          "status": "passed"
+        },
+        {
+          "name": "Part 3 income and tax dashboard opens bracket calculations and explains the rebate and assumptions",
+          "status": "passed"
+        },
+        {
+          "name": "Part 3 income and tax dashboard shows zero income without invalid percentages or broken bars",
+          "status": "passed"
+        },
+        {
+          "name": "Part 3 income and tax dashboard does not silently display missing tax data as zero",
+          "status": "passed"
+        },
+        {
+          "name": "Part 3 income and tax dashboard retries a failed request without displaying server internals",
+          "status": "passed"
+        },
+        {
+          "name": "Part 3 income and tax dashboard refreshes the dashboard with newly received income",
+          "status": "passed"
+        },
+        {
+          "name": "Part 3 income and tax dashboard renders returned assumptions as text rather than executable HTML",
+          "status": "passed"
+        },
+        {
+          "name": "Login page renders username and password fields and a submit button",
+          "status": "passed"
+        },
+        {
+          "name": "Login page calls login with entered credentials and navigates to /gigs on success",
+          "status": "passed"
+        },
+        {
+          "name": "Login page shows an error message when login fails",
+          "status": "passed"
+        },
+        {
+          "name": "MyGigs page shows a loading state initially",
+          "status": "passed"
+        },
+        {
+          "name": "MyGigs page shows a message when there are no gigs yet",
+          "status": "passed"
+        },
+        {
+          "name": "MyGigs page renders a list of the freelancer's gigs once loaded",
+          "status": "passed"
+        },
+        {
+          "name": "MyGigs page creates a gig and refreshes the list on success",
+          "status": "passed"
+        },
+        {
+          "name": "MyGigs page shows the specific field message when gig creation fails validation",
+          "status": "passed"
+        },
+        {
+          "name": "MyGigs page falls back to a generic message when gig creation fails with no server response",
+          "status": "passed"
+        },
+        {
+          "name": "MyGigs page toggles a gig's availability",
+          "status": "passed"
+        },
+        {
+          "name": "MyGigs page deletes a gig after confirmation",
+          "status": "passed"
+        },
+        {
+          "name": "Register page renders username, password, role fields and a submit button",
+          "status": "passed"
+        },
+        {
+          "name": "Register page defaults role to client and allows switching to freelancer",
+          "status": "passed"
+        },
+        {
+          "name": "Register page calls register with username, password and selected role, then shows success message",
+          "status": "passed"
+        },
+        {
+          "name": "Register page shows an error message when registration fails",
+          "status": "passed"
+        }
+      ]
+    },
+    "build": {
+      "exitCode": 0
+    }
+  },
+  "success": true
+}
