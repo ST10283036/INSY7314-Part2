@@ -1,0 +1,18 @@
+{
+  "completedAt": "2026-11-09T17:44:25.861Z",
+  "tool": "Playwright / Google Chrome",
+  "database": "Isolated temporary MongoDB; no shared demo accounts used",
+  "passed": 8,
+  "cases": [
+    "A new freelancer sees zero income and a clear empty tax-year state",
+    "Browser registration, login, gig creation, client booking and transaction recording work together",
+    "Real API income of R300000 displays R40572 tax, 13.52% effective rate and R259428 net income",
+    "All twelve monthly totals and all seven tax brackets are accessible through the dashboard",
+    "The dashboard fits a 390-pixel mobile viewport without page overflow",
+    "Clients cannot access the freelancer dashboard",
+    "Frontend logout revokes the test user's old token on the real backend",
+    "No CSP violations occurred during the tested browser flows"
+  ],
+  "cspViolations": 0,
+  "tlsNote": "Only this isolated loopback browser context accepts the self-signed certificate."
+}

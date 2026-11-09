@@ -1,0 +1,79 @@
+import { useState } from "react";
+import { AuthState } from "./authState";
+import apiClient from "../api/client";
+import { getErrorMessage } from "../api/errorMessage";
+
+
+
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState(() => {
+    const stored = localStorage.getItem("user");
+    return stored ? JSON.parse(stored) : null;
+  });
+  const [token, setToken] = useState(() => localStorage.getItem("token"));
+  const [error, setError] = useState(null);
+
+  async function register(username, password, role) {
+    setError(null);
+    try {
+      const response = await apiClient.post("/auth/register", {
+        username,
+        password,
+        role,
+      });
+      return response.data;
+    } catch (err) {
+      const message = getErrorMessage(err, "Registration failed. Please try again.");
+      setError(message);
+      throw new Error(message, { cause: err });
+    }
+  }
+
+  async function login(username, password) {
+    setError(null);
+    try {
+      const response = await apiClient.post("/auth/login", {
+        username,
+        password,
+      });
+      const { token: newToken, user: loggedInUser } = response.data;
+      localStorage.setItem("token", newToken);
+      localStorage.setItem("user", JSON.stringify(loggedInUser));
+      setToken(newToken);
+      setUser(loggedInUser);
+      return loggedInUser;
+    } catch (err) {
+      const message = getErrorMessage(err, "Login failed. Please try again.");
+      setError(message);
+      throw new Error(message, { cause: err });
+    }
+  }
+
+  function logout() {
+    // Best-effort server-side revocation so a copied token stops working.
+    // The header is set explicitly because local storage is cleared right
+    // below; the user is signed out locally even if this request fails.
+    if (token) {
+      apiClient
+        .post("/auth/logout", {}, { headers: { Authorization: `Bearer ${token}` } })
+        .catch(() => {});
+    }
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    setToken(null);
+    setUser(null);
+  }
+
+  const value = {
+    user,
+    token,
+    isAuthenticated: Boolean(token),
+    error,
+    register,
+    login,
+    logout,
+  };
+
+  return <AuthState.Provider value={value}>{children}</AuthState.Provider>;
+}
+
