@@ -1,136 +1,186 @@
-# HustleHub+ — Part 2: Core Marketplace Features & Security Hardening
+# HustleHub+ — Part 3: DevSecOps, Monitoring and Finalisation
 
-## Group Members
+HustleHub+ lets freelancers list services and clients book them. Each booking records a
+transaction, and freelancers can see their earnings and an estimated income-tax amount.
 
-| Name | Student Number |
-|---|---|
+## Group members
+
+| Name | Student number |
+| --- | --- |
 | Ayakha Ntsomi | ST10283036 |
 | Imran Awaldien | ST10458418 |
 | Ashleigh Kruger | ST10440651 |
 
-## Table of Contents
+## Contents
 
-- [Group Members](#group-members)
-- [2. System Overview](#2-system-overview)
-- [3. Intended Users](#3-intended-users)
-- [4. Architecture](#4-architecture)
-- [5. API Endpoints](#5-api-endpoints)
-- [6. Security Decisions](#6-security-decisions)
-- [7. Setup Instructions](#7-setup-instructions)
-- [8. Testing](#8-testing)
-- [9. Security Testing](#9-security-testing)
-- [10. Demonstration Video](#10-demonstration-video)
-- [11. Known Limitations (Part 2)](#11-known-limitations-part-2)
-- [12. AI Declaration](#12-ai-declaration)
-- [13. References](#13-references)
+- [Part 3 delivery status](#part-3-delivery-status)
+- [Features and architecture](#features-and-architecture)
+- [Run locally](#run-locally)
+- [Income and tax calculation](#income-and-tax-calculation)
+- [API endpoints](#api-endpoints)
+- [Security review](#security-review)
+- [Tests and static analysis](#tests-and-static-analysis)
+- [Docker and pipeline](#docker-and-pipeline)
+- [Logging and monitoring](#logging-and-monitoring)
+- [Demonstration and submission](#demonstration-and-submission)
+- [Limitations](#limitations)
+- [References](#references)
 
-## 2. System Overview
+## Part 3 delivery status
 
-HustleHub+ is a secure freelance marketplace platform that allows freelancers to advertise
-services and clients to browse and book those services. The system records financial
-transactions generated through bookings and gives freelancers visibility into income earned.
+This branch contains Role 3's work on top of Role 1's merged `develop` changes.
+It must be reviewed and integrated into `develop` before the group promotes the final version to `main`.
 
-The platform handles sensitive data — user credentials, transaction records, and income
-information — so security is treated as a core requirement throughout the design, not an
-add-on applied afterwards.
+| Rubric area | Implementation / evidence | Integration status |
+| --- | --- | --- |
+| Tax and income dashboard (20) | Server calculation, summary cards, monthly chart, bracket table, assumptions; [screenshots](security/evidence/part3/) | Implemented and tested |
+| CI/CD (20) | [Frontend checks](.github/workflows/frontend-checks.yml) install, lint, test, build and run the frontend container | Role 2 must integrate backend/security checks and the full stack |
+| Static analysis (10) | ESLint, zero-warning gate, [result summary](security/evidence/part3-frontend-checks.json) | Frontend complete; backend analysis is Role 2's handover |
+| Docker (10) | [Frontend Dockerfile](frontend/Dockerfile), HTTPS Nginx, verified upstream TLS | Full Compose stack and both-container CI evidence pending Role 2 integration |
+| Logging (10) | Required events and evidence described below | Awaiting Role 2 implementation and cloud logging evidence |
+| Additional security (15) | Account lockout and token revocation; backend and Newman tests | Implemented by Role 1 |
+| Security review (10) | Threat/control mapping below and [detailed review](security/SECURITY_REVIEW.md) | Included |
+| README (5) | Setup, features, security, testing and handover | Final pipeline/logging details and Part 3 video link must be added |
 
-**Part 1** delivered the secure backend foundation: registration, login, password hashing,
-JWT-based authentication, input validation, HTTPS, and a protected route demonstrating
-end-to-end token verification.
+The role split is a working agreement; the marks above are assessed for the combined project.
+The final submission is not complete until the pending integration and evidence items are resolved.
 
-**Part 2** builds on that foundation with:
-- Persistent storage via **MongoDB/Mongoose**, replacing Part 1's in-memory array
-- A full **React frontend** covering every role: registration with role selection, login, gig
-  browsing and management, booking and booking cancellation, income tracking, and an admin
-  summary view
-- **Gig** creation, browsing, updating, and deletion, enforced by **role-based access control**
-  (freelancer-only write access)
-- **Booking** creation, viewing, and cancellation (with duplicate-active-booking prevention),
-  **income** reporting for freelancers, and an **admin** summary endpoint, all gated by
-  role-based access, rate limiting, request sanitisation, and security headers (Helmet/CSP)
-- An expanded automated test suite (Postman/Newman for the API, Vitest + React Testing
-  Library for the frontend) and a documented, role-scoped security-testing pass (npm audit,
-  OWASP ZAP, Nmap)
+## Features and architecture
 
-## 3. Intended Users
+- **Clients:** register, log in, browse available gigs, book a service, view their bookings and
+  transaction details, and cancel their own bookings.
+- **Freelancers:** create, hide/show and delete their own gigs; view received bookings;
+  inspect all-time income, current tax-year income, estimated tax and income after estimated tax.
+- **Admins:** view aggregate platform counts. Public registration cannot create an admin.
+- **Part 3 security:** five incorrect passwords temporarily lock an account; logout revokes
+  every earlier token belonging to that account.
 
-| Role | Description |
-|---|---|
-| **Client** | Browses gigs, books and cancels bookings |
-| **Freelancer** | Creates gig listings, views bookings received, tracks income |
-| **Admin** | Platform oversight — aggregate counts of users, gigs, bookings, and transactions |
+The React application calls the Express API. Middleware validates input, verifies the JWT,
+loads the current database role and checks permission before controllers query MongoDB.
+Booking prices and ownership are taken from stored records rather than the client request.
+A successful booking creates a transaction, which is included in that freelancer's income.
 
-Users select their role (`client` or `freelancer`) at registration; `admin` cannot be
-self-registered (public registration explicitly rejects it) and is provisioned separately (see
-Section 6). Every protected route that performs a write or exposes role-specific data is
-enforced server-side by a `requireRole(...)` middleware — the role claimed in the JWT is
-checked on every request, not just trusted from the client.
+In the local production preview, Express serves the built React files over HTTPS.
+The frontend container uses Nginx to serve those files and forward `/api/` requests to the
+HTTPS backend. This keeps browser requests on one origin and works with the strict CSP.
 
-## 4. Architecture
+Key locations:
 
-See `ArchitectureDiagramINSY7314.drawio.png` in this repository for the full system diagram.
+- `backend/routes/`, `controllers/`, `models/`: API routing, business logic and database schemas.
+- `backend/middleware/`: JWT, roles, validation, rate limits, security headers and safe errors.
+- `backend/utils/tax.js`: tax-year boundaries, brackets, rebate and monthly totals.
+- `frontend/src/pages/Income.jsx`: financial dashboard; calculations come from the API.
+- `frontend/src/components/MonthlyIncomeChart.jsx`: dependency-free SVG monthly chart.
+- `frontend/src/context/AuthProvider.jsx`: authentication state and logout request.
+- [Original architecture diagram](ArchitectureDiagramINSY7314.drawio.png): Part 1/2 foundation.
 
-The system follows the MERN stack:
+## Run locally
 
-- **M**ongoDB — persistent storage via Mongoose, replacing Part 1's in-memory array
-- **E**xpress — REST API framework
-- **R**eact — the Part 2 frontend, built with Vite
-- **N**ode.js — runtime
+Use Node.js 24, npm, Git and Chrome. No global Newman installation is needed.
+Docker Desktop is needed only for the container workflow.
 
-### Backend structure
+From the repository root, run each command on its own line:
 
-```
-backend/
-├── app.js                          — Express app: security headers, CORS, rate limiting,
-│                                      route mounting, error handling
-├── server.js                       — entrypoint: env validation, HTTPS server startup
-├── routes/
-│   ├── authRoutes.js                — /register, /login
-│   ├── gigRoutes.js                 — gig CRUD, browsing
-│   ├── bookingRoutes.js             — booking creation, retrieval, and cancellation
-│   ├── incomeRoutes.js              — freelancer income summary
-│   └── adminRoutes.js               — admin aggregate summary
-├── controllers/                     — business logic per resource
-├── middleware/
-│   ├── authValidation.js            — express-validator rules for auth
-│   ├── authenticateToken.js         — verifies JWT on protected routes
-│   ├── requireRole.js               — role-based access control (403 on mismatch)
-│   ├── gigValidation.js             — validation rules for gig endpoints
-│   ├── bookingValidation.js         — validation rules for booking endpoints
-│   ├── securityHeaders.js           — Helmet configuration (CSP, HSTS, frame options, etc.)
-│   ├── rateLimiters.js              — per-endpoint rate limiting
-│   ├── requestValidation.js         — shared validation-error handling
-│   └── errorHandler.js              — centralised error handling
-├── models/                          — Mongoose schemas (User, Gig, Booking, Transaction)
-├── config/db.js                     — MongoDB connection
-├── scripts/                         — local setup, demo data, and security-testing scripts
-│   └── create-local-admin.js        — provisions an admin account in the dev database
-├── certs/                           — local self-signed TLS certificate (git-ignored)
-└── .env                             — local configuration and secrets (git-ignored)
-
-frontend/
-├── src/
-│   ├── api/client.js                — shared Axios instance, Bearer-token interceptor
-│   ├── context/AuthContext.jsx      — auth state, localStorage persistence
-│   ├── components/                  — Navbar, ProtectedRoute
-│   └── pages/                       — Login, Register, Gigs, MyGigs, Bookings, Income,
-│                                       AdminSummary (each with a matching test file)
+```powershell
+cd frontend
+npm.cmd ci
+npm.cmd run verify
+cd ../backend
+npm.cmd ci
+npm.cmd run setup:local
+npm.cmd run start:local
 ```
 
-Separating routes, controllers, and middleware keeps request routing, business logic, and
-cross-cutting concerns (validation, auth, rate limiting) independently testable.
+Open **https://localhost:5000**. The local certificate is self-signed; trust that specific
+localhost certificate for development. Do not disable certificate checking globally.
+Keep the server terminal open. Stop it with Ctrl+C before starting another copy.
 
-## 5. API Endpoints
+`start:local` starts a local MongoDB on port 27018 and an HTTPS server on port 5000.
+It stores the local database outside the repository and generates a new in-memory JWT secret
+on restart, so old login tokens stop working. It automatically serves `frontend/dist`
+when that build exists. It is a development helper, not the container entrypoint.
+
+For live frontend editing, keep the backend running, open another terminal in `frontend`
+and run `npm.cmd run dev`. Visit **http://localhost:5173**. The production build uses
+same-origin `/api`; the dev build calls **https://localhost:5000/api**.
+
+### Configured database / deployment
+
+For `npm start` in `backend`, copy `backend/.env.example` to `backend/.env` and set:
+
+| Variable | Purpose |
+| --- | --- |
+| `MONGO_URI` | MongoDB connection |
+| `JWT_SECRET` | Strong randomly generated signing secret, kept outside Git |
+| `JWT_EXPIRES_IN` | Token lifetime, for example `1h` |
+| `JWT_ISSUER`, `JWT_AUDIENCE` | Expected token issuer and audience |
+| `FRONTEND_ORIGINS` | Exact permitted frontend origin(s), comma-separated |
+| `TLS_KEY_PATH`, `TLS_CERT_PATH` | Private key and certificate paths |
+| `FRONTEND_DIST_PATH` | Optional built React directory, relative to backend |
+| `PORT` | HTTPS port; defaults to 5000 |
+
+Generate local certificates with `npm.cmd run setup:local`. Existing pairs are preserved.
+Never commit environment files, private keys, account passwords or exported Postman tokens.
+
+For an admin, configure `MONGO_URI` to the intended development database, then run
+`npm.cmd run admin:create` from `backend`. This script uses that configured database, not
+the temporary recording database. Keep the generated credentials private. Do not reset a shared demo account
+while another member is using it. Previously published demo credentials must be rotated.
+
+## Income and tax calculation
+
+`GET /api/income` is restricted to freelancers. It aggregates only the signed-in
+freelancer's completed transactions. The all-time total is kept separate from the tax-year
+total; past-year earnings do not increase the current-year estimate.
+
+The South African tax year runs from **1 March to the end of February**, using SAST (UTC+2).
+The API returns twelve monthly buckets, March first, including months with no transactions.
+The current table is the **SARS 2027 tax year**, 1 March 2026 to 28 February 2027 [14].
+
+Calculation:
+
+1. Add completed income within the tax-year boundaries.
+2. Tax each portion of that income at its progressive bracket rate.
+3. Subtract the primary rebate, capped at the tax before rebate.
+4. Clamp estimated tax at zero. Round money to two decimals.
+5. Net income = tax-year income minus estimated tax.
+6. Effective tax rate = estimated tax / tax-year income, or zero if income is zero.
+
+Worked example from the dashboard integration test:
+
+| Step | Amount |
+| --- | ---: |
+| Tax-year income | R300,000.00 |
+| First R245,100 at 18% | R44,118.00 |
+| Remaining R54,900 at 26% | R14,274.00 |
+| Tax before rebate | R58,392.00 |
+| Primary rebate applied | R17,820.00 |
+| Estimated tax | R40,572.00 |
+| Income after estimated tax | R259,428.00 |
+| Effective tax rate | 13.52% |
+
+The frontend displays the returned figures without duplicating tax calculations.
+Users can expand the monthly amounts and all seven tax brackets. The chart is accompanied
+by a readable table, and all API assumptions appear below the calculation.
+
+This is an estimate on income earned so far, not a full-year forecast or payment calculation.
+It assumes an individual under 65 and excludes other income, deductions, medical/retirement
+credits, provisional tax and VAT. Income after tax is not an available payout balance.
+For an unconfigured tax year the backend falls back to its latest table; the table needs
+maintenance as SARS publishes new rates.
+
+## API endpoints
 
 | Method | Endpoint | Description | Auth required |
 |---|---|---|---|
 | GET | `/api/health` | Health check | No |
 | POST | `/api/auth/register` | Register a new user (`username`, `password`, `role`) | No |
 | POST | `/api/auth/login` | Authenticate a user, returns a JWT | No |
+| POST | `/api/auth/logout` | Revoke all tokens issued to the signed-in user | Yes |
 | GET | `/api/protected` | Example protected route | Yes |
 | GET | `/api/gigs` | Browse all available gigs | Yes |
 | GET | `/api/gigs/mine` | List the authenticated freelancer's own gigs | Yes (freelancer) |
-| GET | `/api/gigs/:id` | Get a single gig by ID | Yes |
+| GET | `/api/gigs/:id` | Get an available gig; hidden gigs require their owner | Yes |
 | POST | `/api/gigs` | Create a new gig | Yes (freelancer) |
 | PUT | `/api/gigs/:id` | Update an owned gig | Yes (freelancer, owner) |
 | DELETE | `/api/gigs/:id` | Delete an owned gig | Yes (freelancer, owner) |
@@ -138,273 +188,180 @@ cross-cutting concerns (validation, auth, rate limiting) independently testable.
 | GET | `/api/bookings/mine` | List the authenticated user's bookings | Yes (client, freelancer) |
 | GET | `/api/bookings/:id` | Get a single booking by ID, with its transaction | Yes (client, freelancer, owner) |
 | PATCH | `/api/bookings/:id/cancel` | Cancel a confirmed booking; removes its transaction | Yes (client, freelancer, owner) |
-| GET | `/api/income` | Get the authenticated freelancer's income summary | Yes (freelancer) |
+| GET | `/api/income` | Own income, current tax-year estimate, monthly totals and tax breakdown | Yes (freelancer) |
 | GET | `/api/admin/summary` | Aggregate counts of users, gigs, bookings, transactions | Yes (admin) |
 
-## 6. Security Decisions
+## Security review
 
-### Password hashing
-Passwords are hashed using **bcrypt with a cost factor of 12** before being stored [1], [2].
-On login, the submitted password is compared against the stored hash using bcrypt's
-constant-time comparison — the plain-text password is never stored or logged.
+The [detailed security review](security/SECURITY_REVIEW.md) contains file locations and
+named tests for each control. The main threat/control mapping is:
 
-### JWT-based authentication
-The server issues a JSON Web Token signed with **HS256**, scoped with `issuer`, `audience`,
-and expiry claims [3]. `authenticateToken` middleware verifies all of these on every protected
-request — plus the token's structural shape and that the user is still active in the database —
-and rejects any missing, malformed, or invalid token with a generic `401` response.
+| Threat | Implemented protection | Evidence |
+| --- | --- | --- |
+| NoSQL/operator injection | Plain-string validation, ObjectId checks, strict field allow-lists, typed schemas and 10 KB JSON limit | Backend and Newman negative-input tests |
+| Stored/reflected XSS | Strip HTML from gig text; React escapes displayed values; no raw HTML rendering; strict same-origin CSP | Sanitisation tests, browser CSP checks, dashboard assumption-text test |
+| Password guessing | bcrypt cost 12, generic invalid-login response, IP rate limits and per-account lockout | Lockout expiry/reset tests and rate-limit tests |
+| Forged/stale tokens | HS256 verification, issuer/audience/expiry/subject checks, active user and current role loaded from MongoDB | JWT and database-role tests |
+| Copied token after logout | Database token version incremented on authenticated logout; older versions rejected | Revocation tests, Newman and real-browser logout check |
+| Role escalation / IDOR | Public admin registration denied; server roles and owner-scoped queries; private income aggregation | Cross-role and cross-owner tests |
+| Transport interception / clickjacking | HTTPS, HSTS, restrictive CSP, DENY framing and MIME-sniffing protection | Header tests and historical TLS scans |
+| Sensitive data in errors | Controlled response messages, no raw stack traces or query input returned | Malformed input and safe-error tests |
 
-### Role-based access control
-Every route that writes data or exposes role-specific information is gated by a
-`requireRole(...allowedRoles)` middleware that checks the `role` claim embedded in the verified
-JWT against the roles permitted for that route, returning `403` on a mismatch [6]. This is
-enforced server-side on every request — a client cannot bypass it by hiding a UI element,
-since the same check runs regardless of what the frontend displays. Ownership is also checked
-inside the database query itself (not just the role) for gigs and bookings, so one freelancer
-cannot edit another's gig, and one client cannot view another client's booking — both return
-`404`, not `403`, so the response never reveals whether the resource exists at all. RBAC
-enforcement across gigs, bookings, income, and admin was explicitly tested and confirmed via
-the Postman/Newman suites described in Section 7.
+**Additional feature 1 — account lockout:** five wrong passwords lock that account for
+15 minutes. Login returns 429 with `Retry-After`; a successful login resets the failure
+counter. State is stored in MongoDB, so a process restart does not clear it.
 
-### Input validation and sanitisation
-All registration, login, gig, and booking input is validated using **express-validator** [4]
-before it reaches business logic, with request bodies restricted to expected fields, a `10kb`
-body-size cap enforced globally, and `Content-Type: application/json` required on every
-write request.
+**Additional feature 2 — token revocation:** tokens include a user token-version claim.
+`POST /api/auth/logout` increments the database version, invalidating that user's existing
+tokens across devices. The UI calls the endpoint before clearing its local session.
+If that network request fails, local logout still occurs, but server revocation is not
+guaranteed until a successful request; the token otherwise remains subject to expiry.
 
-### CORS
-Cross-origin requests are restricted to an explicit allow-list (`FRONTEND_ORIGINS`, defaulting
-to the local frontend's origin) [12]. Requests from any other origin are rejected with a
-custom `CORS_ORIGIN_DENIED` error before reaching application logic, and credentials are not
-shared cross-origin.
+Residual risks: JWTs remain in localStorage and could be stolen by a successful XSS.
+Account lockout can be abused to temporarily deny a known user's access. IP rate counters
+are per-process, so a multi-instance deployment needs a shared store. These limits are
+documented rather than treated as solved by the new features.
 
-### Rate limiting
-Login (10 requests / 15 minutes), registration (10 requests / 60 minutes), booking creation
-and cancellation (20 requests / 15 minutes combined, keyed by user ID), and the API as a whole
-(300 requests / 15 minutes) are all independently rate-limited using `express-rate-limit` [9],
-mitigating brute-force and credential-stuffing attempts against the most sensitive endpoints.
+## Tests and static analysis
 
-### Security headers
-**Helmet** [7] sets a strict Content-Security-Policy (`default-src 'self'`, no inline scripts,
-no framing, no plugin objects), `Strict-Transport-Security`, `X-Frame-Options: DENY`,
-`Referrer-Policy: no-referrer` on every response [8]. All `/api` responses are also explicitly
-marked `Cache-Control: no-store`, preventing sensitive API responses from being cached by the
-browser.
+From `frontend`:
 
-### Controlled error handling
-Centralised error-handling middleware ensures the API never leaks internal details — no stack
-traces, file paths, or configuration values are returned to the client.
-
-### HTTPS
-The API only runs over HTTPS, using a locally generated self-signed TLS certificate [5]. An
-Nmap TLS/cipher scan (Section 8) confirmed every supported cipher suite rates "A" strength,
-with no weak or legacy ciphers offered.
-
-## 7. Setup Instructions
-
-```bash
-git clone <repo-url>
-cd backend
-npm install
+```powershell
+npm.cmd run verify
 ```
 
-### Environment configuration
-Copy the example environment file and fill in real values:
-```bash
-copy .env.example .env      # Windows
-# cp .env.example .env      # macOS/Linux
+This runs ESLint, all Vitest tests and the Vite production build. It returns a non-zero exit
+code if any step fails and saves a summary with no local paths or credentials to
+[part3-frontend-checks.json](security/evidence/part3-frontend-checks.json).
+
+Frontend lint fixes:
+
+- Split the authentication provider from its hook/context so Fast Refresh has component-only exports.
+- Preserve the original exception as `cause` while showing only controlled error messages.
+- Load initial bookings and gigs through asynchronous callbacks with unmount guards.
+- Treat warnings as failures; do not disable the rules to make the pipeline pass.
+
+The dashboard tests cover tax-year versus all-time amounts, percentages, all twelve months,
+zero income, expandable brackets, assumptions, refresh/retry and safe text rendering.
+The browser check exercises the real API, including a booking-generated transaction and
+a non-zero tax estimate. Desktop/mobile screenshots are stored with its report.
+
+From `backend`, after the frontend build and certificate setup:
+
+```powershell
+npm.cmd test
+npm.cmd run test:newman
+npm.cmd run test:dashboard
 ```
-Generate a random JWT secret:
-```bash
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-```
-Set `MONGO_URI` to a local MongoDB instance (e.g. `mongodb://127.0.0.1:27017/hustlehub`) and
-`FRONTEND_ORIGINS` to the frontend's origin (default `http://localhost:5173`).
 
-### MongoDB
-Install MongoDB Community Server and ensure the service is running locally before starting
-the backend.
+The backend and Newman suites create temporary databases with their own secrets. They do not
+require a database service or touch shared accounts. The first run may download MongoDB.
+The dashboard browser check also uses an isolated database and needs Google Chrome.
 
-### TLS certificate
-```bash
-npm run setup:local
-```
-Generates `certs/localhost-key.pem` and `certs/localhost-cert.pem` with the correct Subject
-Alternative Names (`localhost` and `127.0.0.1`). The script preserves an existing certificate
-pair rather than overwriting it, so delete both files first if you need to regenerate one (for
-example, if browser or Newman requests start failing with a certificate hostname-mismatch
-error).
+Evidence:
 
-> The first time your browser visits `https://localhost:5000`, it will flag the self-signed
-> certificate as untrusted — accept the warning once. If the certificate is ever regenerated,
-> the browser will need to be told to trust it again, since a new certificate is a new piece
-> of trust data even for the same domain.
+- [Backend test result](security/evidence/node-test-results.json).
+- [Newman result](security/evidence/newman-summary.json).
+- [Frontend lint, tests and build](security/evidence/part3-frontend-checks.json).
+- [Real-browser dashboard result](security/evidence/part3/dashboard-browser-results.json).
+- [Desktop dashboard](security/evidence/part3/income-dashboard-desktop.png).
+- [Mobile dashboard](security/evidence/part3/income-dashboard-mobile.png).
 
-### Run the backend
-```bash
-node server.js
-```
-Server runs at: `https://localhost:5000`
+ESLint is static code analysis, not a replacement for dependency or dynamic security scans.
+The Part 2 ZAP, Nmap and audit reports remain under `security/evidence/` and `screenshots/`;
+their timestamps identify them as historical evidence, not fresh Part 3 scans.
+Before submission, run the agreed security checks on the final integrated version and review
+any findings. Do not describe an old clean scan as proof that every later change is secure.
 
-### Run the frontend
-```bash
-cd frontend
-npm install
-npm run dev
-```
-Frontend runs at: `http://localhost:5173`
+## Docker and pipeline
 
-### Admin account
-Public registration only allows `client` or `freelancer`. To create an admin account in your
-local development database (the same one your regular dev server uses):
-```bash
-cd backend
-npm run admin:create
-```
-This prints a freshly generated username and password for a new admin account — log in with
-those at `/login` to see the **Admin Summary** screen. For reference, during development this
-produced:
-```
-username: demo_admin
-password: Jk1sHwojivqRaA1!
-```
-(Re-run `npm run admin:create` to generate a fresh account/password at any time — it is safe
-to run repeatedly and simply updates the existing `demo_admin` account if one already exists.)
+The [frontend Dockerfile](frontend/Dockerfile) uses a Node 24 build stage and a separate
+Nginx runtime. Lint, tests and build are required during image construction. Source code,
+development dependencies, environment files and private keys are not copied into the runtime.
+Nginx serves HTTPS on **8443**, supports direct navigation to React routes and forwards
+`/api/` to **https://backend:5000**.
 
-> Note: since the TLS certificate is self-signed, browsers and tools like Postman will flag it
-> as untrusted by default. Disable SSL certificate verification in Postman's settings, or
-> accept the browser's security warning, for local testing.
+TLS files are mounted read-only at `/etc/nginx/certs`. The upstream certificate is verified
+against the mounted certificate with hostname `localhost`; verification is not disabled.
+Nginx applies CSP and other security headers to the HTML as well as retaining API headers.
 
-## 8. Testing
+[Role 3 handover](docs/ROLE3_HANDOVER.md) includes the exact Compose service block for Role 2.
+The backend and frontend must share a Docker network, the backend service must be named
+`backend`, and both services must use the agreed certificate pair.
 
-### Backend: Postman + Newman
-Two Postman collections cover the API end to end:
+The [Frontend checks workflow](.github/workflows/frontend-checks.yml) runs on pushes to
+`main`, `develop` and this feature branch, and on pull requests into `main` or `develop`.
+It installs locked dependencies, runs verification, builds the image and starts the frontend
+container to check HTTPS, a React deep link and CSP. Reports are uploaded as workflow artifacts.
+A failed check fails the job; cleanup/log collection does not mask the check result.
 
-- `HustleHub_Part2_Gigs.postman_collection.json` — the full Gigs CRUD lifecycle, including
-  explicit RBAC-enforcement negative tests (a client attempting freelancer-only actions
-  correctly receives `403`), ownership checks, not-found, and no-token cases — 16 requests,
-  26 assertions, all passing.
-- `HustleHub_Part2_BookingIncome.postman_collection.json` — booking creation, listing, and
-  detail retrieval; duplicate-active-booking rejection; cross-user access denial; and income
-  reporting with its own RBAC checks — 23 requests, 38 assertions, all passing.
+That smoke test covers the frontend container only. Role 2 must add the backend/security
+checks and a full Compose smoke test with both application containers running to satisfy the
+combined-stack requirement. Replace this integration note with the final workflow/run links
+once that work is merged and verified.
 
-**To run via Postman UI:** Import a collection, ensure `baseUrl` is `https://localhost:5000`,
-disable SSL certificate verification, start the server, then use the Collection Runner to
-execute the folders in order (tokens and IDs are chained across requests).
+## Logging and monitoring
 
-**To run via Newman (CLI):**
-```bash
-npm install -g newman
-newman run "HustleHub_Part2_Gigs.postman_collection.json" --insecure
-newman run "HustleHub_Part2_BookingIncome.postman_collection.json" --insecure
-```
-Output: `screenshots/newman-cli-run-output.txt` for the Gigs run.
+Role 2 owns the logger and cloud integration. The Role 1 base currently contains controlled
+console error messages, not the completed Part 3 monitoring system. Do not submit this section
+as evidence that cloud logging already works.
 
-A third, security-focused Postman suite (`security/Part2-Security.postman_collection.json`)
-covers authentication, RBAC, booking integrity (server-trusted pricing, not client-supplied),
-income isolation between freelancers, and login throttling, across all roles. It runs against
-an isolated, disposable in-memory database so it never touches your real data:
-```bash
-npm run test:newman
-```
-Output: `security/evidence/newman-summary.json` (39 requests, 57 assertions, all passing).
+The final logger should record login success/failure, account lockout, logout/revocation,
+rejected tokens, booking creation/cancellation, transaction creation and unexpected errors.
+For each event, include a timestamp, event name, outcome and a correlation identifier as
+appropriate. This helps detect repeated login failures and investigate missing or failed
+booking/transaction operations.
 
-### Frontend: Vitest + React Testing Library
-Automated tests cover every page — Login, Register, Gigs (including booking and the
-duplicate-booking error path), MyGigs, Bookings (including cancellation and its confirmation
-dialog), Income, and AdminSummary: rendering, user interaction, success paths, error paths,
-and loading/empty states — 32 tests, all passing.
+Exclude passwords, JWTs, Authorization headers, connection strings, private keys and raw
+request bodies. Limit identifiers to what is necessary for investigation.
+The final handover must name the logging platform, explain access/retention, link redacted
+example events and demonstrate their arrival in that platform. Cloud logging evidence is
+needed for the rubric's highest logging band; console output alone is insufficient.
 
-**To run:**
-```bash
-cd frontend
-npm test
-```
-Output: `screenshots/vitest-run-output.txt`.
+## Demonstration and submission
 
-Screenshots of every Postman request/response pair from Part 1, and the full result sets
-described above for Part 2, are included in this repository as evidence.
+**Part 3 video: recording/upload pending.** Add the final accessible video link here before submission.
+The [Part 2 video](https://youtu.be/r842C0fItIs) is retained as previous evidence and is not
+the final Part 3 demonstration.
 
-## 9. Security Testing
+For a recording without touching shared accounts, build the frontend, then run
+`npm.cmd run record:part3` from `backend`. Open **https://localhost:5443**.
+This creates two accounts in a separate temporary database and saves their credentials to
+the ignored `.private-evidence/part3-recording-accounts.txt`. Keep the terminal open;
+restarting clears only this recording database and changes its password. Do not display
+the credentials file in the video. This helper runs the actual app locally, not Docker;
+container and cloud logging evidence must come from the final integrated stack.
 
-Beyond functional testing, the backend was assessed using a standard security-testing
-methodology: dependency scanning, dynamic vulnerability scanning, and network/TLS scanning.
-This evidence directly supports the security decisions in Section 5, rather than standing as a
-separate deliverable.
+The final recording must show authentication, gig creation, booking and transaction recording,
+then the income/tax dashboard. Include concise evidence of tests/static analysis, the completed
+pipeline, running containers, logging and the two additional security features.
+Use dedicated recording accounts; never deliberately lock or revoke shared group accounts.
 
-### Dependency scanning (npm audit)
-`npm audit` reports **zero vulnerabilities in production dependencies**. Including development
-tooling (specifically `newman`, the Postman CLI runner, and its transitive dependencies — never
-shipped or run in production) raises that to 19 findings (7 moderate, 11 high, 1 critical), all
-confined to that one dev-only dependency tree. Full detail:
-`security/evidence/dependency-audit.json`.
+Before the final push:
 
-### Dynamic vulnerability scanning (OWASP ZAP)
-An OWASP ZAP [10] baseline automated scan was run against the live backend. Results: **0 High,
-0 Medium, 2 Low, 1 Informational** — no serious vulnerabilities. The two Low findings (missing
-`Strict-Transport-Security` and `X-Content-Type-Options` headers) and the Informational finding
-(cache-control directives) are all directly resolved by the Helmet configuration and explicit
-`Cache-Control: no-store` described in Section 5. Full report:
-`screenshots/zap-baseline-scan-report.html`.
+- Integrate reviewed role branches into `develop` in the agreed order.
+- Rerun checks on the combined code, not only each member's separate branch.
+- Confirm backend/frontend containers run together in CI and locally as documented.
+- Add cloud logging evidence and final pipeline/static-analysis results.
+- Upload the Part 3 video; check its link from a browser where the owner is not signed in.
+- Replace pending README items with actual results and evidence links.
+- Review the final diff for secrets, then merge reviewed `develop` into `main`.
 
-A second, more extensive set of role-scoped ZAP scans was also run from four perspectives —
-anonymous, client, freelancer, and admin — plus a focused follow-up scan targeting the booking
-and gig write endpoints specifically for injection. Every phase came back with **Informational
-findings only, zero High/Medium/Low**, across all four roles. Full reports and raw results:
-`security/evidence/zap-anonymous.html`, `zap-client.html`, `zap-client-focused.html`,
-`zap-freelancer.html`, `zap-freelancer-focused.html`, `zap-admin.html` (and matching `.json`
-files), plus a browser-based frontend scan at `zap-frontend.html`.
+## Limitations
 
-### Network and TLS scanning (Nmap)
-Nmap [11] was used for two scans against the backend host:
-1. A full TCP port scan (`-p-`) confirming only the expected application port is exposed to
-   the local network, with other open ports attributable to unrelated local development
-   tools and services, not the HustleHub+ application.
-2. A service/TLS scan (`-sV -sC --script ssl-cert,ssl-enum-ciphers`) against port 5000,
-   confirming the self-signed certificate matches what is documented in Section 5, and that
-   **every supported TLS 1.2 and TLS 1.3 cipher suite rates "A" strength**, with no weak or
-   legacy ciphers offered.
+- Local TLS is self-signed; deployed environments need a trusted certificate.
+- Booking transactions represent application records, not a real payment gateway.
+- Cancellation deletes the associated transaction, so cancelled bookings no longer contribute
+  to income and have no retained transaction history.
+- The tax assumptions and table-maintenance requirement are explained above.
+- Admin oversight is read-only; there is no account-management screen.
+- Development-tool dependency findings must be reviewed separately from production packages.
+- The frontend proxy makes requests from one container address. With the backend's current
+  `trust proxy = false`, IP-based limits are shared behind it. Role 2 should either document
+  this conservative behaviour or trust only the known proxy after restricting backend exposure;
+  blindly trusting arbitrary forwarding headers would weaken rate limiting.
 
-Full output: `screenshots/nmap-full-port-scan.txt` and `screenshots/nmap-tls-service-scan.txt`.
-
-## 10. Demonstration Video
-
-https://youtu.be/r842C0fItIs
-
-## 11. Known Limitations (Part 2)
-
-- The TLS certificate is self-signed and intended for local development only; a production
-  deployment would require a certificate from a trusted certificate authority.
-- A production deployment should restrict network exposure (firewall rules) to only the
-  ports actually required, rather than relying on a development machine's default state.
-- The admin role currently exposes a read-only platform summary only. The `User` model already
-  supports an `isActive` flag (and `authenticateToken` already honours it), but there is no
-  admin-facing endpoint yet to actually deactivate or reactivate a user — a natural next step
-  if user-management functionality is required.
-- Cancelling a booking deletes its associated transaction record outright (rather than marking
-  it as refunded), since the `Transaction` model currently only supports a `completed` status.
-  This keeps freelancer income figures accurate without further schema changes, but means
-  cancelled bookings have no corresponding transaction history.
-- `npm audit` findings are confined to `newman`, a development-only dependency used purely for
-  running the Postman test suites; it is never installed or run in production.
-
-## 12. AI Declaration
-
-Generative AI (Claude, Anthropic) was used during the development of this project to assist
-with:
-- Structuring backend code (routes, controllers, middleware) and frontend components following
-  consistent, idiomatic patterns.
-- Diagnosing and explaining error messages and unexpected behaviour (e.g. validation failures,
-  TLS certificate issues, HTTP status codes), and helping implement the corresponding fixes.
-- Drafting and reviewing automated tests (Vitest/React Testing Library and Postman/Newman
-  collections) alongside the application code they exercise.
-- Reviewing, updating, and formatting project documentation, including this README.
-
-All AI-assisted output was reviewed, tested, and verified by the group before being committed.
-Architectural decisions, security requirements, and final implementation choices remain the
-responsibility of the group members listed above.
-
-## 13. References
+## References
 
 [1] npm, Inc., "bcrypt," *npm*, 2026. [Online]. Available: https://www.npmjs.com/package/bcrypt. [Accessed: 12-Oct-2026].
 
@@ -429,3 +386,14 @@ responsibility of the group members listed above.
 [11] Nmap Project, "Nmap: the Network Mapper," 2026. [Online]. Available: https://nmap.org/. [Accessed: 12-Oct-2026].
 
 [12] npm, Inc., "cors," *npm*, 2026. [Online]. Available: https://www.npmjs.com/package/cors. [Accessed: 12-Oct-2026].
+
+[14] South African Revenue Service, "Rates of Tax for Individuals", 2027 tax year and primary
+rebate. https://www.sars.gov.za/tax-rates/income-tax/rates-of-tax-for-individuals/
+Accessed 9 November 2026.
+
+[15] Docker, "Multi-stage builds". https://docs.docker.com/build/building/multi-stage/
+Accessed 9 November 2026.
+
+[16] NGINX, "ngx_http_proxy_module", upstream TLS verification.
+https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_ssl_verify
+Accessed 9 November 2026.
