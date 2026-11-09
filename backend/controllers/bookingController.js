@@ -1,6 +1,7 @@
 const Gig = require("../models/Gig");
 const Booking = require("../models/Booking");
 const Transaction = require("../models/Transaction");
+const logger = require("../utils/logger");
 
 function formatBooking(booking) {
     return {
@@ -31,6 +32,9 @@ async function createBooking(req, res) {
         });
 
         if (existingActiveBooking) {
+            logger.event("booking_rejected", {
+                level: "warn", outcome: "duplicate", req, gigId: String(gig._id),
+            });
             return res.status(409).json({
                 message: "You already have an active booking for this gig.",
             });
@@ -54,9 +58,19 @@ async function createBooking(req, res) {
             });
         } catch (error) {
             await Booking.deleteOne({ _id: booking._id });
+            logger.event("booking_rolled_back", {
+                level: "error", outcome: "failure", req, bookingId: String(booking._id), error,
+            });
             throw error;
         }
-        
+
+        logger.event("booking_created", {
+            req, bookingId: String(booking._id), gigId: String(gig._id), price: booking.price,
+        });
+        logger.event("transaction_created", {
+            req, bookingId: String(booking._id), transactionId: String(transaction._id), amount: transaction.amount,
+        });
+
         return res.status(201).json({
             message: "Booking confirmed.",
             booking: formatBooking(booking),
@@ -67,7 +81,7 @@ async function createBooking(req, res) {
             },
         });
     } catch (error) {
-        console.error("Create booking failed unexpectedly:");
+        logger.unexpected(req, "create_booking", error);
 
         return res.status(500).json({
             message: "An unexpected error occurred.",
@@ -91,7 +105,7 @@ async function listMyBookings(req, res) {
             bookings: bookings.map(formatBooking),
         });
     } catch (error) {
-        console.error("List bookings failed unexpectedly:");
+        logger.unexpected(req, "list_bookings", error);
 
         return res.status(500).json({
             message: "An unexpected error occurred.",
@@ -139,6 +153,8 @@ async function cancelBooking(req, res, next) {
         await booking.save();
 
         await Transaction.deleteOne({ booking: booking._id });
+
+        logger.event("booking_cancelled", { req, bookingId: String(booking._id), transactionRemoved: true });
 
         return res.status(200).json({
             message: "Booking cancelled.",

@@ -1,4 +1,5 @@
 const Gig = require("../models/Gig");
+const logger = require("../utils/logger");
 
 function formatGig(gig) {
     return {
@@ -28,7 +29,7 @@ async function createGig(req, res) {
             gig: formatGig(gig),
         });
     } catch (error) {
-        console.error("Create gig failed unexpectedly:");
+        logger.unexpected(req, "create_gig", error);
 
         return res.status(500).json({
             message: "An unexpected error occurred.",
@@ -45,7 +46,7 @@ async function listAvailableGigs(req, res) {
 
         return res.status(200).json({ gigs: gigs.map(formatGig) });
     } catch (error) {
-        console.error("List gigs failed unexpectedly:");
+        logger.unexpected(req, "list_gigs", error);
 
         return res.status(500).json({
             message: "An unexpected error occurred.",
@@ -61,7 +62,7 @@ async function listMyGigs(req, res) {
 
         return res.status(200).json({ gigs: gigs.map(formatGig) });
     } catch (error) {
-        console.error("List my gigs failed unexpectedly:");
+        logger.unexpected(req, "list_my_gigs", error);
 
         return res.status(500).json({
             message: "An unexpected error occurred.",
@@ -85,7 +86,7 @@ async function getGigById(req, res) {
 
         return res.status(200).json({ gig: formatGig(gig) });
     } catch (error) {
-        console.error("Get gig failed unexpectedly:");
+        logger.unexpected(req, "get_gig", error);
 
         return res.status(500).json({
             message: "An unexpected error occurred.",
@@ -119,7 +120,7 @@ async function updateGig(req, res) {
             gig: formatGig(gig),
         });
     } catch (error) {
-        console.error("Update gig failed unexpectedly:");
+        logger.unexpected(req, "update_gig", error);
 
         return res.status(500).json({
             message: "An unexpected error occurred.",
@@ -140,7 +141,7 @@ async function deleteGig(req, res) {
 
         return res.status(200).json({ message: "Gig deleted successfully." });
     } catch (error) {
-        console.error("Delete gig failed unexpectedly:");
+        logger.unexpected(req, "delete_gig", error);
 
         return res.status(500).json({
             message: "An unexpected error occurred.",

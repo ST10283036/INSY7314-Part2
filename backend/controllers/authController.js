@@ -1,6 +1,7 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const logger = require("../utils/logger");
 const { MAX_FAILED_LOGINS, LOCKOUT_MS } = require("../config/lockout");
 
 const BCRYPT_SALT_ROUNDS = 12;
@@ -54,6 +55,7 @@ async function register(req, res) {
         });
 
         if (existingUser) {
+        logger.event("registration_rejected", { level: "warn", outcome: "username_taken", req });
         return res.status(409).json({
             message: "That username is already taken.",
             });
@@ -70,6 +72,8 @@ async function register(req, res) {
             role: role || DEFAULT_ROLE,
         });
 
+        logger.event("user_registered", { req, accountId: newUser.id, accountRole: newUser.role });
+
         return res.status(201).json({
             message: "User registered successfully.",
             user: {
@@ -80,12 +84,13 @@ async function register(req, res) {
         });
     } catch (error) {
         if (error.code === 11000) {
+            logger.event("registration_rejected", { level: "warn", outcome: "username_taken", req });
             return res.status(409).json({
                 message: "That username is already taken.",
             });
         }
 
-        console.error("Registration failed unexpectedly.");
+        logger.unexpected(req, "register", error);
 
         return res.status(500).json({
             message: "An unexpected error occurred.",
@@ -102,6 +107,9 @@ async function login(req, res) {
         }).select("+passwordHash +failedLoginAttempts +lockUntil +tokenVersion");
 
         if (!user || user.isActive === false) {
+            logger.event("login_failed", {
+                level: "warn", outcome: "denied", req, reason: "unknown_or_inactive_account", username,
+            });
             return res.status(401).json({
                 message: "Invalid username or password.",
             });
@@ -110,6 +118,9 @@ async function login(req, res) {
         // A locked account is rejected before any password check, so the lock
         // cannot be used to guess passwords and costs no bcrypt work.
         if (user.lockUntil && user.lockUntil.getTime() > Date.now()) {
+            logger.event("login_blocked", {
+                level: "warn", outcome: "account_locked", req, accountId: user.id, username,
+            });
             return sendLockedResponse(res, user.lockUntil);
         }
 
@@ -121,7 +132,15 @@ async function login(req, res) {
         if (!passwordMatches) {
             const lockUntil = await recordFailedLogin(user._id);
 
+            logger.event("login_failed", {
+                level: "warn", outcome: "denied", req, reason: "wrong_password", accountId: user.id, username,
+            });
+
             if (lockUntil) {
+                logger.event("account_locked", {
+                    level: "warn", outcome: "locked", req, accountId: user.id,
+                    lockMinutes: Math.round(LOCKOUT_MS / 60000),
+                });
                 return sendLockedResponse(res, lockUntil);
             }
 
@@ -155,6 +174,8 @@ async function login(req, res) {
             }
         );
 
+        logger.event("login_succeeded", { req, accountId: user.id, accountRole: user.role });
+
         return res.status(200).json({
             message: "Login successful.",
             token,
@@ -166,8 +187,8 @@ async function login(req, res) {
                 role: user.role,
             },
         });
-    } catch {
-        console.error("Login failed unexpectedly.");
+    } catch (error) {
+        logger.unexpected(req, "login", error);
 
         return res.status(500).json({
             message: "An unexpected error occurred.",
@@ -184,11 +205,13 @@ async function logout(req, res) {
             { $inc: { tokenVersion: 1 } }
         );
 
+        logger.event("logout", { req, outcome: "tokens_revoked" });
+
         return res.status(200).json({
             message: "Logged out. All sessions for this account have been signed out.",
         });
-    } catch {
-        console.error("Logout failed unexpectedly.");
+    } catch (error) {
+        logger.unexpected(req, "logout", error);
 
         return res.status(500).json({
             message: "An unexpected error occurred.",

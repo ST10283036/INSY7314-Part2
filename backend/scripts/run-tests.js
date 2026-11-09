@@ -2,8 +2,9 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { spawn } = require("node:child_process");
 
-const child = spawn(process.execPath, ["--test", "--test-concurrency=1", "--test-reporter=spec", "tests/security.test.js", "tests/tax.test.js"], {
-    cwd: path.join(__dirname, ".."), windowsHide: true, stdio: ["ignore", "pipe", "pipe"],
+const child = spawn(process.execPath, ["--test", "--test-concurrency=1", "--test-reporter=spec", "tests/security.test.js", "tests/tax.test.js", "tests/logger.test.js"], {
+    cwd: path.join(__dirname, ".."), windowsHide: true,
+    env: { ...process.env, LOG_STDOUT: "false" }, stdio: ["ignore", "pipe", "pipe"],
 });
 let output = "";
 child.stdout.on("data", (chunk) => { output += chunk; process.stdout.write(chunk); });

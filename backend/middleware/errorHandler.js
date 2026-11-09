@@ -1,6 +1,11 @@
+const logger = require("../utils/logger");
+
 function errorHandler(error, req, res, next) {
     if (res.headersSent) return next(error);
     if (error.code === "CORS_ORIGIN_DENIED") {
+        logger.event("origin_denied", {
+            level: "warn", outcome: "denied", req, origin: req.get("Origin"),
+        });
         return res.status(403).json({ message: "Request origin is not allowed." });
     }
     if (error.type === "entity.too.large") {
@@ -12,7 +17,7 @@ function errorHandler(error, req, res, next) {
     if (error.name === "ValidationError" || error.name === "CastError" || error.name === "StrictModeError") {
         return res.status(400).json({ message: "Invalid request data." });
     }
-    console.error("An unexpected request error occurred.");
+    logger.unexpected(req, "request", error);
     return res.status(500).json({ message: "An unexpected error occurred." });
 }
 

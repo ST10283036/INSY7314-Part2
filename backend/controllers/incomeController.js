@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const logger = require("../utils/logger");
 const Transaction = require("../models/Transaction");
 const {
     SAST_OFFSET_TEXT,
@@ -89,7 +90,7 @@ async function getIncome(req, res) {
             })),
         });
     } catch (error) {
-        console.error("Get income failed unexpectedly:");
+        logger.unexpected(req, "get_income", error);
 
         return res.status(500).json({
             message: "An unexpected error occurred.",

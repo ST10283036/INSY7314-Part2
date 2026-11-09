@@ -8,6 +8,7 @@ require("dotenv").config({
 const https = require("https");
 const fs = require("fs");
 const connectDatabase = require("./config/db");
+const logger = require("./utils/logger");
 
 const requiredSettings = [
     "JWT_SECRET",
@@ -82,7 +83,16 @@ async function startServer() {
             console.log(
                 `HustleHub+ backend running securely at https://localhost:${port}`
             );
+            logger.event("server_started", { port, shipping: Boolean(process.env.LOG_SHIP_URL) });
         });
+
+    // Send any buffered log events before the process stops (e.g. docker stop).
+    for (const signal of ["SIGTERM", "SIGINT"]) {
+        process.once(signal, () => {
+            logger.event("server_stopping", { signal });
+            logger.flush().finally(() => process.exit(0));
+        });
+    }
     } catch {
         console.error(
             "HTTPS certificate files could not be loaded. Check the configured paths."

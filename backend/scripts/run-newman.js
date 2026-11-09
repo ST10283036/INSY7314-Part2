@@ -7,6 +7,7 @@ const newman = require("newman");
 const { MongoMemoryServer } = require("mongodb-memory-server");
 
 async function run() {
+    process.env.LOG_STDOUT = "false";
     process.env.JWT_SECRET = crypto.randomBytes(48).toString("base64url");
     process.env.JWT_ISSUER = "newman-test";
     process.env.JWT_AUDIENCE = "newman-test-api";

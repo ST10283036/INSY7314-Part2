@@ -6,11 +6,13 @@ const securityHeaders = require("./middleware/securityHeaders");
 const { apiLimiter } = require("./middleware/rateLimiters");
 const authenticateToken = require("./middleware/authenticateToken");
 const errorHandler = require("./middleware/errorHandler");
+const requestContext = require("./middleware/requestContext");
 
 const app = express();
 const allowedOrigins = (process.env.FRONTEND_ORIGINS || "http://localhost:5173")
     .split(",").map((value) => value.trim()).filter(Boolean);
 app.disable("x-powered-by");
+app.use(requestContext);
 // Direct local HTTPS has no trusted proxy. Do not trust arbitrary forwarded IP headers.
 app.use(securityHeaders);
 app.use(cors((req, callback) => {

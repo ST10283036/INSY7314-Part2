@@ -1,8 +1,15 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const logger = require("../utils/logger");
 const VALID_ROLES = new Set(["client", "freelancer", "admin"]);
 
 async function authenticateToken(req, res, next) {
+    // Every rejection returns the same generic 401; the reason is only logged.
+    const reject = (reason) => {
+        logger.event("token_rejected", { level: "warn", outcome: "denied", req, reason });
+        return res.status(401).json({ message: "Authentication required." });
+    };
+
     const authorization = req.get("authorization");
 
     const match = authorization
@@ -10,9 +17,7 @@ async function authenticateToken(req, res, next) {
         : null;
 
     if (!match) {
-        return res.status(401).json({
-            message: "Authentication required.",
-        });
+        return reject("missing_or_malformed");
     }
 
     let decoded;
@@ -40,27 +45,23 @@ async function authenticateToken(req, res, next) {
             (decoded.tv !== undefined &&
                 (!Number.isSafeInteger(decoded.tv) || decoded.tv < 0))
         ) {
-            return res.status(401).json({
-                message: "Authentication required.",
-            });
+            return reject("invalid_claims");
         }
 
     } catch {
-        return res.status(401).json({
-            message: "Authentication required.",
-        });
+        return reject("invalid_token");
     }
 
     try {
         const user = await User.findById(decoded.id).select("role isActive +tokenVersion");
         if (!user || user.isActive === false || !VALID_ROLES.has(user.role)) {
-            return res.status(401).json({ message: "Authentication required." });
+            return reject("account_missing_or_inactive");
         }
 
         // A token issued before the latest logout carries an older version.
         // Tokens signed before this check existed have no claim and count as 0.
         if ((decoded.tv ?? 0) !== (user.tokenVersion ?? 0)) {
-            return res.status(401).json({ message: "Authentication required." });
+            return reject("token_revoked");
         }
         req.user = { id: user._id.toString(), role: user.role };
         return next();

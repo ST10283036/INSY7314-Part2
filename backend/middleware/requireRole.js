@@ -1,3 +1,5 @@
+const logger = require("../utils/logger");
+
 function requireRole(...allowedRoles) {
     const roles = new Set(["client", "freelancer", "admin"]);
     if (!allowedRoles.length || allowedRoles.some((role) => !roles.has(role))) {
@@ -8,6 +10,9 @@ function requireRole(...allowedRoles) {
             return res.status(401).json({ message: "Authentication required." });
         }
         if (!roles.has(req.user.role) || !allowedRoles.includes(req.user.role)) {
+            logger.event("access_denied", {
+                level: "warn", outcome: "denied", req, requiredRoles: allowedRoles,
+            });
             return res.status(403).json({
                 message: "You do not have permission to perform this action.",
             });
