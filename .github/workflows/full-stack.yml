@@ -1,0 +1,53 @@
+name: Full-stack containers
+
+on:
+  push:
+    branches: [main, develop, feature/part3-integration-fixes]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Prepare disposable secrets and TLS
+        run: |
+          node backend/scripts/prepare-compose-ci.js
+          mkdir -p backend/certs
+          openssl req -x509 -newkey rsa:2048 -nodes -days 1 \
+            -keyout backend/certs/localhost-key.pem -out backend/certs/localhost-cert.pem \
+            -subj '/CN=localhost' -addext 'subjectAltName=DNS:localhost,IP:127.0.0.1'
+          chmod 644 backend/certs/localhost-key.pem
+      - name: Build and run the complete stack; wait for healthy services
+        run: docker compose -p hustlehub-ci up --build --detach --wait --wait-timeout 180
+      - name: Verify frontend proxy, registration, booking, transaction, income and logout
+        run: node backend/scripts/check-compose.js
+      - name: Verify emitted audit events
+        run: |
+          docker compose -p hustlehub-ci logs --no-color --no-log-prefix backend > "$RUNNER_TEMP/backend-audit.log"
+          node backend/scripts/check-audit-evidence.js "$RUNNER_TEMP/backend-audit.log"
+      - name: Save container status
+        if: always()
+        run: |
+          mkdir -p security/evidence/part3-ci
+          docker compose -p hustlehub-ci ps --all --format json > security/evidence/part3-ci/containers.json
+      - name: Upload redacted integration evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-stack-evidence
+          path: security/evidence/part3-ci/
+          retention-days: 30
+          if-no-files-found: warn
+      - name: Remove disposable CI containers and database
+        if: always()
+        run: docker compose -p hustlehub-ci down --volumes --remove-orphans
