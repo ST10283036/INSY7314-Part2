@@ -12,6 +12,8 @@
     "test:zap": "node scripts/run-zap.js",
     "test:zap:focused": "node scripts/run-zap.js --focused",
     "test:browser-security": "node scripts/run-browser-security.js",
+    "test:dashboard": "node scripts/check-part3-dashboard.js",
+    "record:part3": "node scripts/start-part3-recording.js",
     "test:zap:frontend": "node scripts/run-browser-security.js --zap",
     "demo:prepare": "node scripts/prepare-demo.js",
     "demo:check": "node scripts/run-demo-check.js",

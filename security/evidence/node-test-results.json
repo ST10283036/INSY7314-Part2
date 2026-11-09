@@ -1,10 +1,10 @@
 {
-  "completedAt": "2026-10-12T16:49:25.989Z",
+  "completedAt": "2026-11-09T21:07:41.172Z",
   "tool": "Node.js test runner",
   "database": "Isolated real MongoDB",
   "exitCode": 0,
-  "tests": 25,
-  "passed": 25,
+  "tests": 46,
+  "passed": 46,
   "failed": 0,
   "skipped": 0,
   "cases": [
@@ -32,6 +32,27 @@
     "failed transaction creation rolls back its booking",
     "booking limits return 429 per user while another client retains their quota",
     "login limits return 429 after ten attempts with useful quota and retry headers",
-    "registration is separately rate limited"
+    "registration is separately rate limited",
+    "income includes a progressive tax estimate for the current tax year",
+    "small incomes pay no tax and one freelancer's tax never uses another's income",
+    "income earned before the current tax year is excluded from the estimate",
+    "an account locks after five wrong passwords and rejects even the correct password",
+    "the lock expires, a correct login succeeds and the failure state is cleared",
+    "a successful login resets the failure count so scattered mistakes never lock an account",
+    "a client cannot hold two active bookings for the same gig",
+    "cancelling a booking is limited to its participants and removes its transaction",
+    "after cancelling, the client can book the same gig again",
+    "logout revokes every token issued before it, and a new login works again",
+    "logout requires authentication, rejects unexpected body fields and does not affect other accounts",
+    "tokens with a forged or malformed tv claim are rejected",
+    "tax matches the SARS published bracket boundaries before rebate",
+    "the primary rebate is deducted and income under the threshold pays nothing",
+    "a typical freelancer income is taxed progressively",
+    "invalid, negative and zero income produce zero tax",
+    "the per-bracket breakdown adds up to the tax before rebate",
+    "results are rounded to two decimal places",
+    "the tax year starts on 1 March at midnight South African time",
+    "a tax year without a published table falls back to the latest one",
+    "monthly income covers twelve months from March and fills gaps with zero"
   ]
 }

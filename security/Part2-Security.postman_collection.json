@@ -944,7 +944,22 @@
             "type": "text/javascript",
             "exec": [
               "pm.test(\"Income belongs to correct freelancer\", function () { pm.response.to.have.status(200); });",
-              "pm.test('Income is correct', function () { pm.expect(pm.response.json().totalIncome).to.equal(125.5); });"
+              "pm.test('Income is correct', function () { pm.expect(pm.response.json().totalIncome).to.equal(125.5); });",
+              "pm.test('Tax estimate fields are present', function () {",
+              "  var b = pm.response.json();",
+              "  pm.expect(b.taxYear).to.have.property('label');",
+              "  pm.expect(b.taxYearIncome).to.equal(125.5);",
+              "  pm.expect(b.estimatedTax).to.equal(0);",
+              "  pm.expect(b.netIncome).to.equal(125.5);",
+              "  pm.expect(b.effectiveTaxRate).to.equal(0);",
+              "  pm.expect(b.taxAssumptions).to.be.an('array').that.is.not.empty;",
+              "});",
+              "pm.test('Monthly income covers 12 months and adds up', function () {",
+              "  var m = pm.response.json().monthlyIncome;",
+              "  pm.expect(m).to.have.lengthOf(12);",
+              "  var total = m.reduce(function (s, x) { return s + x.total; }, 0);",
+              "  pm.expect(Math.round(total * 100) / 100).to.equal(125.5);",
+              "});"
             ]
           }
         }
@@ -973,7 +988,8 @@
             "type": "text/javascript",
             "exec": [
               "pm.test(\"Other freelancer income remains zero\", function () { pm.response.to.have.status(200); });",
-              "pm.test('Income is isolated', function () { pm.expect(pm.response.json().totalIncome).to.equal(0); });"
+              "pm.test('Income is isolated', function () { pm.expect(pm.response.json().totalIncome).to.equal(0); });",
+              "pm.test('No tax is estimated on zero income', function () { var b = pm.response.json(); pm.expect(b.estimatedTax).to.equal(0); pm.expect(b.taxYearIncome).to.equal(0); });"
             ]
           }
         }
@@ -1121,6 +1137,169 @@
             "exec": [
               "pm.test(\"Incorrect login is generic\", function () { pm.response.to.have.status(401); });",
               "pm.test('Generic error', function () { pm.expect(pm.response.json().message).to.equal('Invalid username or password.'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Logout requires authentication",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/auth/logout",
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Logout without a token is denied', function () { pm.response.to.have.status(401); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Logout rejects unexpected fields",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{clientBToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/auth/logout",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"role\":\"admin\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Unexpected logout field rejected', function () { pm.response.to.have.status(400); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Token still valid after rejected logout",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{clientBToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/protected"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Rejected logout revokes nothing', function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Logout revokes the session",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{clientBToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/auth/logout",
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Logout succeeds', function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Revoked token is rejected",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{clientBToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/protected"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Token is rejected after logout', function () { pm.response.to.have.status(401); });"
             ]
           }
         }

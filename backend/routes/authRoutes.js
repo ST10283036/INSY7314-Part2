@@ -1,5 +1,7 @@
 const express = require("express");
 const authController = require("../controllers/authController");
+const authenticateToken = require("../middleware/authenticateToken");
+const { allowOnlyFields } = require("../middleware/requestValidation");
 const { registrationLimiter, loginLimiter } = require("../middleware/rateLimiters");
 const {
     registerValidation,
@@ -20,6 +22,13 @@ router.post(
     loginLimiter,
     loginValidation,
     authController.login
+);
+
+router.post(
+    "/logout",
+    authenticateToken,
+    allowOnlyFields([]),
+    authController.logout
 );
 
 module.exports = router;

@@ -26,7 +26,12 @@ export default function Bookings() {
   }
 
   useEffect(() => {
-    fetchBookings();
+    let cancelled = false;
+    apiClient.get("/bookings/mine")
+      .then((response) => { if (!cancelled) setBookings(response.data.bookings); })
+      .catch(() => { if (!cancelled) setError("Could not load bookings. Please try again later."); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, []);
 
   async function handleToggleDetail(booking) {

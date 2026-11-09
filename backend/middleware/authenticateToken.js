@@ -36,7 +36,9 @@ async function authenticateToken(req, res, next) {
             !Number.isSafeInteger(decoded.iat) ||
             !Number.isSafeInteger(decoded.exp) ||
             decoded.exp <= decoded.iat ||
-            decoded.iat > Math.floor(Date.now() / 1000)
+            decoded.iat > Math.floor(Date.now() / 1000) ||
+            (decoded.tv !== undefined &&
+                (!Number.isSafeInteger(decoded.tv) || decoded.tv < 0))
         ) {
             return res.status(401).json({
                 message: "Authentication required.",
@@ -50,8 +52,14 @@ async function authenticateToken(req, res, next) {
     }
 
     try {
-        const user = await User.findById(decoded.id).select("role isActive");
+        const user = await User.findById(decoded.id).select("role isActive +tokenVersion");
         if (!user || user.isActive === false || !VALID_ROLES.has(user.role)) {
+            return res.status(401).json({ message: "Authentication required." });
+        }
+
+        // A token issued before the latest logout carries an older version.
+        // Tokens signed before this check existed have no claim and count as 0.
+        if ((decoded.tv ?? 0) !== (user.tokenVersion ?? 0)) {
             return res.status(401).json({ message: "Authentication required." });
         }
         req.user = { id: user._id.toString(), role: user.role };
