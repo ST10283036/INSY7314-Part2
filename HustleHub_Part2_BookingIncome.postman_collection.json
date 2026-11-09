@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "HustleHub+ Part 2 - Booking & Income Endpoints",
-    "description": "Tests for booking creation/listing and freelancer income reporting, including RBAC enforcement (client vs freelancer) and validation. Base URL uses HTTPS with a self-signed local certificate \u2014 SSL certificate verification must be OFF in Postman settings for these requests to succeed locally.\n\nRun order matters: Register/Login requests capture tokens into collection variables that later requests depend on. Use the Collection Runner to execute the whole collection in order, or run folders top to bottom manually.",
+    "description": "Tests for booking creation/listing and freelancer income reporting, including RBAC enforcement (client vs freelancer) and validation. Base URL uses HTTPS with a self-signed local certificate — SSL certificate verification must be OFF in Postman settings for these requests to succeed locally.\n\nRun order matters: Register/Login requests capture tokens into collection variables that later requests depend on. Use the Collection Runner to execute the whole collection in order, or run folders top to bottom manually.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -921,6 +921,14 @@
                   "    pm.expect(jsonData.totalIncome).to.be.at.least(500);",
                   "    pm.expect(jsonData.transactionCount).to.be.at.least(1);",
                   "    pm.expect(jsonData.recentTransactions).to.be.an('array');",
+                  "});",
+                  "pm.test('Tax estimate is consistent with income', function () {",
+                  "    const j = pm.response.json();",
+                  "    pm.expect(j.taxYear).to.have.property('label');",
+                  "    pm.expect(j.estimatedTax).to.be.at.least(0);",
+                  "    pm.expect(Math.round((j.taxYearIncome - j.estimatedTax) * 100) / 100).to.equal(j.netIncome);",
+                  "    pm.expect(j.monthlyIncome).to.have.lengthOf(12);",
+                  "    pm.expect(j.taxAssumptions).to.be.an('array');",
                   "});"
                 ],
                 "type": "text/javascript"

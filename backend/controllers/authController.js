@@ -1,9 +1,46 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const { MAX_FAILED_LOGINS, LOCKOUT_MS } = require("../config/lockout");
 
 const BCRYPT_SALT_ROUNDS = 12;
 const DEFAULT_ROLE = "client";
+
+function sendLockedResponse(res, lockUntil) {
+    const seconds = Math.max(1, Math.ceil((lockUntil.getTime() - Date.now()) / 1000));
+    const minutes = Math.ceil(seconds / 60);
+
+    res.set("Retry-After", String(seconds));
+
+    return res.status(429).json({
+        message:
+            "Too many failed login attempts. This account is temporarily locked. " +
+            `Try again in ${minutes} minute${minutes === 1 ? "" : "s"}.`,
+    });
+}
+
+// Counts a wrong password atomically. Returns the lock expiry if this attempt
+// triggered a lock, otherwise null.
+async function recordFailedLogin(userId) {
+    const updated = await User.findOneAndUpdate(
+        { _id: userId },
+        { $inc: { failedLoginAttempts: 1 } },
+        { returnDocument: "after" }
+    ).select("+failedLoginAttempts");
+
+    if (updated && updated.failedLoginAttempts >= MAX_FAILED_LOGINS) {
+        const lockUntil = new Date(Date.now() + LOCKOUT_MS);
+
+        await User.updateOne(
+            { _id: userId },
+            { $set: { failedLoginAttempts: 0, lockUntil } }
+        );
+
+        return lockUntil;
+    }
+
+    return null;
+}
 
 async function register(req, res) {
     const { username, password, role } = req.body;
@@ -62,12 +99,18 @@ async function login(req, res) {
     try {
         const user = await User.findOne({
             username: username.toLowerCase()
-        }).select("+passwordHash");
+        }).select("+passwordHash +failedLoginAttempts +lockUntil +tokenVersion");
 
         if (!user || user.isActive === false) {
             return res.status(401).json({
                 message: "Invalid username or password.",
             });
+        }
+
+        // A locked account is rejected before any password check, so the lock
+        // cannot be used to guess passwords and costs no bcrypt work.
+        if (user.lockUntil && user.lockUntil.getTime() > Date.now()) {
+            return sendLockedResponse(res, user.lockUntil);
         }
 
         const passwordMatches = await bcrypt.compare(
@@ -76,9 +119,22 @@ async function login(req, res) {
         );
 
         if (!passwordMatches) {
+            const lockUntil = await recordFailedLogin(user._id);
+
+            if (lockUntil) {
+                return sendLockedResponse(res, lockUntil);
+            }
+
             return res.status(401).json({
                 message: "Invalid username or password.",
             });
+        }
+
+        if (user.failedLoginAttempts > 0 || user.lockUntil) {
+            await User.updateOne(
+                { _id: user._id },
+                { $set: { failedLoginAttempts: 0, lockUntil: null } }
+            );
         }
 
         const userId = user._id.toString();
@@ -87,6 +143,7 @@ async function login(req, res) {
             {
                 id: user.id,
                 role: user.role,
+                tv: user.tokenVersion || 0,
             },
             process.env.JWT_SECRET,
             {
@@ -118,4 +175,25 @@ async function login(req, res) {
     }
 }  
   
-module.exports = { register, login };
+// Revokes every token issued to this account so far (a stolen token stops
+// working as soon as its owner logs out). New logins get the new version.
+async function logout(req, res) {
+    try {
+        await User.updateOne(
+            { _id: req.user.id },
+            { $inc: { tokenVersion: 1 } }
+        );
+
+        return res.status(200).json({
+            message: "Logged out. All sessions for this account have been signed out.",
+        });
+    } catch {
+        console.error("Logout failed unexpectedly.");
+
+        return res.status(500).json({
+            message: "An unexpected error occurred.",
+        });
+    }
+}
+
+module.exports = { register, login, logout };

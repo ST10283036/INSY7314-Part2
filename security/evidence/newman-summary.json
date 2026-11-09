@@ -1,5 +1,5 @@
 {
-  "completedAt": "2026-10-12T19:58:57.733Z",
+  "completedAt": "2026-11-09T11:41:00.786Z",
   "tool": "Newman",
   "scope": "Dedicated local MongoDB and verified HTTPS",
   "stats": {
@@ -9,37 +9,37 @@
       "failed": 0
     },
     "items": {
-      "total": 39,
+      "total": 44,
       "pending": 0,
       "failed": 0
     },
     "scripts": {
-      "total": 40,
+      "total": 45,
       "pending": 0,
       "failed": 0
     },
     "prerequests": {
-      "total": 39,
+      "total": 44,
       "pending": 0,
       "failed": 0
     },
     "requests": {
-      "total": 39,
+      "total": 44,
       "pending": 0,
       "failed": 0
     },
     "tests": {
-      "total": 39,
+      "total": 44,
       "pending": 0,
       "failed": 0
     },
     "assertions": {
-      "total": 57,
+      "total": 65,
       "pending": 0,
       "failed": 0
     },
     "testScripts": {
-      "total": 39,
+      "total": 44,
       "pending": 0,
       "failed": 0
     },
