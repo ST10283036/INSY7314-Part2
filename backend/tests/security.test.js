@@ -20,6 +20,8 @@ const Booking = require("../models/Booking");
 const Transaction = require("../models/Transaction");
 const { loginLimiter, registrationLimiter, bookingLimiter } = require("../middleware/rateLimiters");
 const { getTaxYearBounds } = require("../utils/tax");
+const logger = require("../utils/logger");
+process.env.LOG_STDOUT = "false";
 const password = `${crypto.randomBytes(18).toString("base64url")}aA1!`;
 const accounts = {};
 let mongo;
@@ -539,4 +541,104 @@ test("tokens with a forged or malformed tv claim are rejected", async () => {
         const result = await request.get("/api/protected").set("Authorization", `Bearer ${sign({ tv })}`);
         assert.equal(result.status, 401, `tv=${JSON.stringify(tv)}`);
     }
+});
+
+// ---------------------------------------------------------------------------
+// Security and audit logging
+// ---------------------------------------------------------------------------
+
+function captureLogs() {
+    const events = [];
+    const stop = logger.addTransport((record) => events.push(record));
+    return { events, stop };
+}
+
+test("authentication events are logged with outcomes and never include passwords", async () => {
+    const { events, stop } = captureLogs();
+    try {
+        await registerAccount("log_user");
+        for (let i = 0; i < 5; i += 1) await attemptLogin("log_user", "WrongDemo1!");
+        await attemptLogin("log_user", password);
+
+        const names = events.map((entry) => entry.event);
+        assert.ok(names.includes("user_registered"));
+        assert.equal(names.filter((name) => name === "login_failed").length, 5);
+        assert.ok(names.includes("account_locked"), "the fifth failure locks the account");
+        assert.ok(names.includes("login_blocked"), "a login attempt on a locked account is recorded");
+
+        const failed = events.find((entry) => entry.event === "login_failed");
+        assert.equal(failed.level, "warn");
+        assert.equal(failed.outcome, "denied");
+        assert.equal(failed.reason, "wrong_password");
+        assert.equal(failed.username, "log_user");
+
+        assert.ok(events.every((entry) => typeof entry.requestId === "string" && entry.requestId.length >= 8),
+            "every event carries a request correlation id");
+        const text = JSON.stringify(events);
+        assert.ok(!text.includes(password), "the correct password must never be logged");
+        assert.ok(!text.includes("WrongDemo1!"), "attempted passwords must never be logged");
+    } finally { stop(); }
+});
+
+test("successful logins, rejected tokens, denied roles and logouts are logged", async () => {
+    const { events, stop } = captureLogs();
+    try {
+        await request.get("/api/protected").set("Authorization", "Bearer not-a-real-token");
+        const denied = await request.get("/api/income").set("Authorization", bearer("client_a"));
+        assert.equal(denied.status, 403);
+
+        await registerAccount("log_logout");
+        const token = await loginToken("log_logout");
+        assert.equal((await request.post("/api/auth/logout").set("Authorization", `Bearer ${token}`).send({})).status, 200);
+        assert.equal((await request.get("/api/protected").set("Authorization", `Bearer ${token}`)).status, 401);
+
+        assert.deepEqual(
+            events.filter((entry) => entry.event === "token_rejected").map((entry) => entry.reason),
+            ["invalid_token", "token_revoked"]
+        );
+        assert.ok(events.some((entry) => entry.event === "access_denied" && entry.role === "client" && entry.outcome === "denied"));
+        assert.ok(events.some((entry) => entry.event === "login_succeeded" && entry.accountRole === "client"));
+        assert.ok(events.some((entry) => entry.event === "logout" && entry.userId));
+        assert.ok(!JSON.stringify(events).includes(token), "tokens must never be logged");
+    } finally { stop(); }
+});
+
+test("booking, transaction and cancellation events are logged", async () => {
+    await registerAccount("log_client");
+    const token = await loginToken("log_client");
+    const { events, stop } = captureLogs();
+    try {
+        const booked = await request.post("/api/bookings").set("Authorization", `Bearer ${token}`).send({ gigId });
+        assert.equal(booked.status, 201);
+        const cancelled = await request.patch(`/api/bookings/${booked.body.booking.id}/cancel`)
+            .set("Authorization", `Bearer ${token}`).send({});
+        assert.equal(cancelled.status, 200);
+
+        const business = events.map((entry) => entry.event)
+            .filter((name) => ["booking_created", "transaction_created", "booking_cancelled"].includes(name));
+        assert.deepEqual(business, ["booking_created", "transaction_created", "booking_cancelled"]);
+
+        const transaction = events.find((entry) => entry.event === "transaction_created");
+        assert.equal(transaction.bookingId, booked.body.booking.id);
+        assert.equal(typeof transaction.amount, "number");
+        assert.equal(transaction.role, "client");
+    } finally { stop(); }
+});
+
+test("responses carry a request id, and rate-limit hits are logged", async () => {
+    const health = await request.get("/api/health");
+    assert.match(health.headers["x-request-id"], /^[A-Za-z0-9-]{8,64}$/);
+
+    const supplied = await request.get("/api/health").set("X-Request-Id", "trace-abc-12345");
+    assert.equal(supplied.headers["x-request-id"], "trace-abc-12345");
+
+    const unsafe = await request.get("/api/health").set("X-Request-Id", "bad id with spaces");
+    assert.notEqual(unsafe.headers["x-request-id"], "bad id with spaces");
+
+    const { events, stop } = captureLogs();
+    try {
+        for (let i = 0; i < 11; i += 1) await attemptLogin("absent_log_user", "WrongDemo1!");
+        await new Promise((resolve) => setImmediate(resolve));
+        assert.ok(events.some((entry) => entry.event === "rate_limit_exceeded" && entry.level === "warn"));
+    } finally { stop(); }
 });
