@@ -10,8 +10,9 @@ for (const line of input.split(/\r?\n/)) {
     try {
         const record = JSON.parse(line.slice(line.indexOf("{")));
         if (record.service !== "hustlehub-backend") continue;
+        if (typeof record.timestamp !== "string" || !/^\d{4}-\d{2}-\d{2}T[\d:.]+Z$/.test(record.timestamp)) continue;
         writeEvent(record.event, record.requestId, record.status, record.durationMs,
-            (safe) => records.push(JSON.parse(safe)));
+            (safe) => records.push({ ...JSON.parse(safe), timestamp: record.timestamp }));
     } catch { /* Ignore ordinary startup messages. */ }
 }
 for (const event of ["login_succeeded", "login_failed", "booking_created", "transaction_created", "logout_succeeded", "authentication_rejected", "access_denied"]) {
