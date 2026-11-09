@@ -23,6 +23,19 @@ const userSchema = new mongoose.Schema(
             type: Boolean,
             default: true,
         },
+        // Brute-force protection state (see config/lockout.js). Hidden from
+        // normal queries; only the login controller reads them explicitly.
+        failedLoginAttempts: {
+            type: Number,
+            default: 0,
+            min: 0,
+            select: false,
+        },
+        lockUntil: {
+            type: Date,
+            default: null,
+            select: false,
+        },
     },
     { timestamps: true }
 );
