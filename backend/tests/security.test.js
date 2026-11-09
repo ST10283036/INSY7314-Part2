@@ -19,6 +19,7 @@ const Gig = require("../models/Gig");
 const Booking = require("../models/Booking");
 const Transaction = require("../models/Transaction");
 const { loginLimiter, registrationLimiter, bookingLimiter } = require("../middleware/rateLimiters");
+const { getTaxYearBounds } = require("../utils/tax");
 const password = `${crypto.randomBytes(18).toString("base64url")}aA1!`;
 const accounts = {};
 let mongo;
@@ -300,7 +301,8 @@ test("failed transaction creation rolls back its booking", async () => {
     Transaction.create = async () => { throw new Error("Simulated storage failure."); };
     console.error = () => {};
     try {
-        const result = await request.post("/api/bookings").set("Authorization", bearer("client_a")).send({ gigId });
+        // client_b has no existing booking for this gig, so the request reaches the storage step.
+        const result = await request.post("/api/bookings").set("Authorization", bearer("client_b")).send({ gigId });
         assert.equal(result.status, 500);
         assert.deepEqual(result.body, { message: "An unexpected error occurred." });
         assert.equal(await Booking.countDocuments(), count);
@@ -339,4 +341,153 @@ test("registration is separately rate limited", async () => {
         assert.equal((await request.post("/api/auth/register").send({ username: "invalid_registration" })).status, 400);
     }
     assert.equal((await request.post("/api/auth/register").send({ username: "invalid_registration" })).status, 429);
+});
+
+// ---------------------------------------------------------------------------
+// Tax estimate on the income endpoint
+// ---------------------------------------------------------------------------
+
+async function insertTransaction(freelancerId, amount, createdAt) {
+    await Transaction.collection.insertOne({
+        booking: new mongoose.Types.ObjectId(),
+        client: new mongoose.Types.ObjectId(accounts.client_a.id),
+        freelancer: new mongoose.Types.ObjectId(freelancerId),
+        amount,
+        status: "completed",
+        createdAt,
+        updatedAt: createdAt,
+    });
+}
+
+test("income includes a progressive tax estimate for the current tax year", async () => {
+    await insertTransaction(accounts.freelancer_b.id, 300000, new Date());
+
+    const result = await request.get("/api/income").set("Authorization", bearer("freelancer_b"));
+    assert.equal(result.status, 200);
+    assert.equal(result.body.totalIncome, 300000);
+    assert.equal(result.body.taxYearIncome, 300000);
+    assert.equal(result.body.estimatedTax, 40572);
+    assert.equal(result.body.netIncome, 259428);
+    assert.equal(result.body.effectiveTaxRate, 0.1352);
+    assert.equal(result.body.taxBeforeRebate, 58392);
+    assert.equal(result.body.taxRebate, 17820);
+    assert.equal(result.body.taxBreakdown.length, 7);
+    assert.ok(result.body.taxAssumptions.length > 0);
+    assert.match(result.body.taxYear.label, /^\d{4}\/\d{2}$/);
+
+    assert.equal(result.body.monthlyIncome.length, 12);
+    assert.equal(result.body.monthlyIncome.reduce((sum, month) => sum + month.total, 0), 300000);
+    const currentMonth = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString().slice(0, 7);
+    assert.equal(result.body.monthlyIncome.find((month) => month.month === currentMonth).total, 300000);
+});
+
+test("small incomes pay no tax and one freelancer's tax never uses another's income", async () => {
+    const own = await request.get("/api/income").set("Authorization", bearer("freelancer_a"));
+    assert.equal(own.status, 200);
+    assert.equal(own.body.taxYearIncome, 125.5);
+    assert.equal(own.body.estimatedTax, 0);
+    assert.equal(own.body.netIncome, 125.5);
+});
+
+test("income earned before the current tax year is excluded from the estimate", async () => {
+    const { start } = getTaxYearBounds();
+    await insertTransaction(accounts.freelancer_b.id, 50000, new Date(start.getTime() - 24 * 60 * 60 * 1000));
+
+    const result = await request.get("/api/income").set("Authorization", bearer("freelancer_b"));
+    assert.equal(result.body.totalIncome, 350000);
+    assert.equal(result.body.taxYearIncome, 300000);
+    assert.equal(result.body.estimatedTax, 40572);
+});
+
+// ---------------------------------------------------------------------------
+// Account lockout after repeated failed logins
+// ---------------------------------------------------------------------------
+
+async function registerAccount(name) {
+    const created = await request.post("/api/auth/register").send({ username: name, password, role: "client" });
+    assert.equal(created.status, 201);
+}
+
+function attemptLogin(name, attempt) {
+    return request.post("/api/auth/login").send({ username: name, password: attempt });
+}
+
+test("an account locks after five wrong passwords and rejects even the correct password", async () => {
+    await registerAccount("lockout_user");
+    for (let i = 1; i <= 4; i += 1) {
+        assert.equal((await attemptLogin("lockout_user", "WrongDemo1!")).status, 401, `attempt ${i}`);
+    }
+
+    const locking = await attemptLogin("lockout_user", "WrongDemo1!");
+    assert.equal(locking.status, 429);
+    assert.match(locking.body.message, /temporarily locked/i);
+    assert.ok(Number(locking.headers["retry-after"]) > 0);
+
+    const correctWhileLocked = await attemptLogin("lockout_user", password);
+    assert.equal(correctWhileLocked.status, 429);
+    assert.equal(correctWhileLocked.body.token, undefined);
+
+    assert.equal((await attemptLogin("client_b", password)).status, 200, "other accounts are unaffected");
+});
+
+test("the lock expires, a correct login succeeds and the failure state is cleared", async () => {
+    await registerAccount("lockout_expiry");
+    for (let i = 0; i < 5; i += 1) await attemptLogin("lockout_expiry", "WrongDemo1!");
+
+    const locked = await User.findOne({ username: "lockout_expiry" }).select("+lockUntil +failedLoginAttempts");
+    assert.ok(locked.lockUntil > new Date());
+    await User.updateOne({ _id: locked._id }, { $set: { lockUntil: new Date(Date.now() - 1000) } });
+
+    assert.equal((await attemptLogin("lockout_expiry", password)).status, 200);
+
+    const cleared = await User.findOne({ username: "lockout_expiry" }).select("+lockUntil +failedLoginAttempts");
+    assert.equal(cleared.lockUntil, null);
+    assert.equal(cleared.failedLoginAttempts, 0);
+
+    const hidden = await User.findOne({ username: "lockout_expiry" });
+    assert.equal(hidden.failedLoginAttempts, undefined);
+    assert.equal(hidden.lockUntil, undefined);
+});
+
+test("a successful login resets the failure count so scattered mistakes never lock an account", async () => {
+    await registerAccount("lockout_reset");
+    for (let i = 0; i < 4; i += 1) assert.equal((await attemptLogin("lockout_reset", "WrongDemo1!")).status, 401);
+    assert.equal((await attemptLogin("lockout_reset", password)).status, 200);
+    for (let i = 0; i < 4; i += 1) assert.equal((await attemptLogin("lockout_reset", "WrongDemo1!")).status, 401);
+});
+
+// ---------------------------------------------------------------------------
+// Duplicate bookings and cancellation
+// ---------------------------------------------------------------------------
+
+test("a client cannot hold two active bookings for the same gig", async () => {
+    const before = await Booking.countDocuments();
+    const duplicate = await request.post("/api/bookings").set("Authorization", bearer("client_a")).send({ gigId });
+    assert.equal(duplicate.status, 409);
+    assert.match(duplicate.body.message, /already have an active booking/i);
+    assert.equal(await Booking.countDocuments(), before);
+});
+
+test("cancelling a booking is limited to its participants and removes its transaction", async () => {
+    assert.equal((await request.patch(`/api/bookings/${bookingId}/cancel`).set("Authorization", bearer("client_b")).send({})).status, 404);
+    assert.equal((await request.patch(`/api/bookings/${bookingId}/cancel`).set("Authorization", bearer("freelancer_b")).send({})).status, 404);
+    assert.equal((await request.patch("/api/bookings/not-an-id/cancel").set("Authorization", bearer("client_a")).send({})).status, 400);
+    assert.equal(await Transaction.countDocuments({ booking: bookingId }), 1);
+
+    const cancelled = await request.patch(`/api/bookings/${bookingId}/cancel`).set("Authorization", bearer("client_a")).send({});
+    assert.equal(cancelled.status, 200);
+    assert.equal(cancelled.body.booking.status, "cancelled");
+    assert.equal(await Transaction.countDocuments({ booking: bookingId }), 0);
+
+    assert.equal((await request.patch(`/api/bookings/${bookingId}/cancel`).set("Authorization", bearer("client_a")).send({})).status, 409);
+
+    const income = await request.get("/api/income").set("Authorization", bearer("freelancer_a"));
+    assert.equal(income.body.totalIncome, 0);
+    assert.equal(income.body.estimatedTax, 0);
+});
+
+test("after cancelling, the client can book the same gig again", async () => {
+    const rebooked = await request.post("/api/bookings").set("Authorization", bearer("client_a")).send({ gigId });
+    assert.equal(rebooked.status, 201);
+    assert.equal(rebooked.body.transaction.amount, 125.50);
 });
