@@ -26,7 +26,9 @@ jobs:
           cache-dependency-path: backend/package-lock.json
       - name: Install locked dependencies
         run: npm ci
-      - name: Dependency audit (report only)
+      - name: Dependency audit of production dependencies (fails on high or critical)
+        run: npm audit --omit=dev --audit-level=high
+      - name: Dependency audit of dev tooling (report only)
         run: npm audit --audit-level=high
         continue-on-error: true
       - name: Create disposable TLS certificate for the API tests
