@@ -1,10 +1,10 @@
 {
-  "completedAt": "2026-11-09T11:11:09.240Z",
+  "completedAt": "2026-11-09T11:36:09.758Z",
   "tool": "Node.js test runner",
   "database": "Isolated real MongoDB",
   "exitCode": 0,
-  "tests": 43,
-  "passed": 43,
+  "tests": 46,
+  "passed": 46,
   "failed": 0,
   "skipped": 0,
   "cases": [
@@ -42,6 +42,9 @@
     "a client cannot hold two active bookings for the same gig",
     "cancelling a booking is limited to its participants and removes its transaction",
     "after cancelling, the client can book the same gig again",
+    "logout revokes every token issued before it, and a new login works again",
+    "logout requires authentication, rejects unexpected body fields and does not affect other accounts",
+    "tokens with a forged or malformed tv claim are rejected",
     "tax matches the SARS published bracket boundaries before rebate",
     "the primary rebate is deducted and income under the threshold pays nothing",
     "a typical freelancer income is taxed progressively",
