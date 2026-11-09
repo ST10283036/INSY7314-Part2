@@ -24,26 +24,23 @@ transaction, and freelancers can see their earnings and an estimated income-tax 
 - [Logging and monitoring](#logging-and-monitoring)
 - [Demonstration and submission](#demonstration-and-submission)
 - [Limitations](#limitations)
+- [AI declaration](#ai-declaration)
 - [References](#references)
 
 ## Part 3 delivery status
 
-This branch contains Role 3's work on top of Role 1's merged `develop` changes.
-It must be reviewed and integrated into `develop` before the group promotes the final version to `main`.
-
-| Rubric area | Implementation / evidence | Integration status |
+| Rubric area | Implementation / evidence | Status |
 | --- | --- | --- |
 | Tax and income dashboard (20) | Server calculation, summary cards, monthly chart, bracket table, assumptions; [screenshots](security/evidence/part3/) | Implemented and tested |
-| CI/CD (20) | [Frontend checks](.github/workflows/frontend-checks.yml) install, lint, test, build and run the frontend container | Role 2 must integrate backend/security checks and the full stack |
-| Static analysis (10) | ESLint, zero-warning gate, [result summary](security/evidence/part3-frontend-checks.json) | Frontend complete; backend analysis is Role 2's handover |
-| Docker (10) | [Frontend Dockerfile](frontend/Dockerfile), HTTPS Nginx, verified upstream TLS | Full Compose stack and both-container CI evidence pending Role 2 integration |
-| Logging (10) | Required events and evidence described below | Awaiting Role 2 implementation and cloud logging evidence |
-| Additional security (15) | Account lockout and token revocation; backend and Newman tests | Implemented by Role 1 |
+| CI/CD (20) | [Backend CI](.github/workflows/ci.yml) runs backend tests, Newman API tests, a production dependency audit and the backend container build; [Frontend checks](.github/workflows/frontend-checks.yml) install, lint, test, build and run the frontend container. Both fail the run on a failing check | Implemented; green on `main` |
+| Static analysis (10) | ESLint with a zero-warning gate, [result summary](security/evidence/part3-frontend-checks.json); `npm audit` on production dependencies | Frontend complete; backend static analysis pending |
+| Docker (10) | [Backend Dockerfile](backend/Dockerfile), [frontend Dockerfile](frontend/Dockerfile) with HTTPS Nginx, and [docker-compose.yml](docker-compose.yml) | Built in CI; full Compose stack not yet verified end to end |
+| Logging (10) | Structured, redacted security and audit events with request ids, tested; optional shipping to a cloud log platform (see Logging and monitoring) | Implemented and tested; cloud platform screenshot pending |
+| Additional security (15) | Account lockout and token revocation on logout; backend and Newman tests | Implemented and tested |
 | Security review (10) | Threat/control mapping below and [detailed review](security/SECURITY_REVIEW.md) | Included |
-| README (5) | Setup, features, security, testing and handover | Final pipeline/logging details and Part 3 video link must be added |
+| README (5) | Setup, features, security, testing and handover | Part 3 video link pending |
 
-The role split is a working agreement; the marks above are assessed for the combined project.
-The final submission is not complete until the pending integration and evidence items are resolved.
+Items marked pending are not complete and are not claimed as evidence.
 
 ## Features and architecture
 
@@ -302,21 +299,60 @@ once that work is merged and verified.
 
 ## Logging and monitoring
 
-Role 2 owns the logger and cloud integration. The Role 1 base currently contains controlled
-console error messages, not the completed Part 3 monitoring system. Do not submit this section
-as evidence that cloud logging already works.
+The backend writes structured security and audit events through
+[`backend/utils/logger.js`](backend/utils/logger.js). Each event is one JSON object, for example:
 
-The final logger should record login success/failure, account lockout, logout/revocation,
-rejected tokens, booking creation/cancellation, transaction creation and unexpected errors.
-For each event, include a timestamp, event name, outcome and a correlation identifier as
-appropriate. This helps detect repeated login failures and investigate missing or failed
-booking/transaction operations.
+```json
+{"timestamp":"2026-11-09T21:14:02.113Z","level":"warn","event":"login_failed","outcome":"denied",
+ "service":"hustlehub-backend","requestId":"6f1c2c0e-…","ip":"::1","method":"POST",
+ "path":"/api/auth/login","reason":"wrong_password","username":"demo_user"}
+```
 
-Exclude passwords, JWTs, Authorization headers, connection strings, private keys and raw
-request bodies. Limit identifiers to what is necessary for investigation.
-The final handover must name the logging platform, explain access/retention, link redacted
-example events and demonstrate their arrival in that platform. Cloud logging evidence is
-needed for the rubric's highest logging band; console output alone is insufficient.
+| Event | Level | When it is recorded |
+| --- | --- | --- |
+| `user_registered`, `registration_rejected` | info / warn | A new account is created, or a username is already taken |
+| `login_succeeded`, `login_failed` | info / warn | A login succeeds, or fails (wrong password or unknown account) |
+| `account_locked`, `login_blocked` | warn | Five failed logins lock an account; a login is attempted while it is locked |
+| `logout` | info | All of a user's tokens are revoked |
+| `token_rejected` | warn | A token is missing, invalid, revoked or belongs to an inactive account (reason recorded; the client only sees a generic 401) |
+| `access_denied` | warn | A signed-in user calls a route their role may not use |
+| `origin_denied`, `rate_limit_exceeded` | warn | A disallowed CORS origin, or a request blocked by a rate limit |
+| `booking_created`, `transaction_created`, `booking_cancelled` | info | Booking and transaction lifecycle |
+| `booking_rejected`, `booking_rolled_back` | warn / error | A duplicate booking, or a transaction failure that removed its booking |
+| `unexpected_error` | error | Any unhandled failure, with the operation name and error name/code |
+| `server_started`, `server_stopping` | info | Process lifecycle |
+
+Every request gets a correlation id (returned to the client as `X-Request-Id`), so all events from one
+request can be traced together. Events record a timestamp, event name, outcome, request id, user id and role
+where known, IP address, method and path. Passwords, tokens, Authorization headers, connection strings and
+other secrets are never logged: sensitive field names are redacted, long values are truncated, query strings
+are dropped, and errors are reduced to their name and code because error messages can contain user data.
+The only user-supplied identifier logged is the attempted username on login events, which is needed to
+spot repeated failures against one account.
+
+**What the logs are used for.** Repeated `login_failed` and `account_locked` events show password guessing;
+`token_rejected` with reason `token_revoked` shows a stolen token being reused after logout; spikes in
+`rate_limit_exceeded` and `access_denied` show probing; `unexpected_error` and `booking_rolled_back` show
+failing booking or transaction operations that need investigation.
+
+**Where the logs go.** Events are always written to the console (as JSON lines, collected by Docker). If
+`LOG_SHIP_URL` and `LOG_SHIP_TOKEN` are set in `backend/.env`, they are also shipped in batches over HTTPS to
+a cloud log platform's JSON ingest API. Shipping is best effort: a slow or unreachable platform can never
+block or fail a request, and buffered events are flushed on shutdown. Any platform with an HTTP JSON ingest
+endpoint works; the setup below uses Axiom's.
+
+1. Create a free account at https://axiom.co and a dataset named `hustlehub-logs`.
+2. Create an API token with ingest permission for that dataset.
+3. In `backend/.env`, set `LOG_SHIP_URL=https://<your-axiom-domain>/v1/ingest/hustlehub-logs` and
+   `LOG_SHIP_TOKEN=<token>` (see `backend/.env.example`). Never commit the token.
+4. Start the backend, log in with a wrong password a few times, then query the dataset, for example
+   `['hustlehub-logs'] | where event == "login_failed"`.
+
+**Evidence.** Automated tests verify the events, the redaction rules and the shipper
+([`backend/tests/logger.test.js`](backend/tests/logger.test.js) and the logging tests in
+`backend/tests/security.test.js`). A screenshot of events arriving in the cloud platform is pending: it
+requires the group's own platform account and is not claimed until it is added to
+`security/evidence/part3/`.
 
 ## Demonstration and submission
 
@@ -355,11 +391,19 @@ Before the final push:
   to income and have no retained transaction history.
 - The tax assumptions and table-maintenance requirement are explained above.
 - Admin oversight is read-only; there is no account-management screen.
-- Development-tool dependency findings must be reviewed separately from production packages.
+- The Newman test runner (a dev-only dependency) has known vulnerabilities in its transitive packages. It is not installed in the production container (`npm ci --omit=dev`) and never runs in production, and the only automatic fix downgrades Newman to an unmaintained version, so the risk is accepted. CI fails on high or critical findings in production dependencies, which currently report none.
 - The frontend proxy makes requests from one container address. With the backend's current
   `trust proxy = false`, IP-based limits are shared behind it. Role 2 should either document
   this conservative behaviour or trust only the known proxy after restricting backend exposure;
   blindly trusting arbitrary forwarding headers would weaken rate limiting.
+
+## AI declaration
+
+Generative AI (Claude, by Anthropic) was used as a coding and writing assistant on this project. It helped with
+code structure, diagnosing errors and test failures, writing and extending automated tests, the income tax
+calculation and the account lockout and token revocation features, the security review and README wording, and
+git and merge guidance. All AI-assisted output was reviewed, run and tested by the group members, who remain
+responsible for the submitted work. Tax rates and rebates were taken from the cited SARS source.
 
 ## References
 
