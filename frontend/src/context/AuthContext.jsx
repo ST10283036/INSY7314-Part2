@@ -49,6 +49,14 @@ export function AuthProvider({ children }) {
   }
 
   function logout() {
+    // Best-effort server-side revocation so a copied token stops working.
+    // The header is set explicitly because local storage is cleared right
+    // below; the user is signed out locally even if this request fails.
+    if (token) {
+      apiClient
+        .post("/auth/logout", {}, { headers: { Authorization: `Bearer ${token}` } })
+        .catch(() => {});
+    }
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     setToken(null);
