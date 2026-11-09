@@ -313,6 +313,20 @@ The `full-stack-evidence` artifact contains container status, request-check resu
 allowlisted audit records (30-day retention). CI uses random disposable credentials and its
 own database volume, which it removes after the run. Download evidence before artifact expiry.
 
+Verified integration revision **70fb55f**, 9 November 2026:
+
+- [Full-stack CI passed](https://github.com/ST10283036/INSY7314-Part2/actions/runs/42702285857):
+  [16 HTTPS checks](security/evidence/part3-integration/compose-checks.json),
+  [all three containers running and healthy](security/evidence/part3-integration/containers.json),
+  and [redacted audit events](security/evidence/part3-integration/audit-events.json).
+- [Backend CI passed](https://github.com/ST10283036/INSY7314-Part2/actions/runs/42702285759):
+  49 backend tests, 44 Newman requests / 65 assertions, and backend image build.
+- [Frontend CI passed](https://github.com/ST10283036/INSY7314-Part2/actions/runs/42702285839):
+  lint, 55 tests, production build and frontend HTTPS container check.
+
+The linked snapshot files were downloaded from the successful full-stack CI artifact;
+future runs publish their own results rather than reusing these snapshots.
+
 ## Logging and monitoring
 
 The [audit middleware](backend/middleware/auditLog.js) writes one JSON line per selected
